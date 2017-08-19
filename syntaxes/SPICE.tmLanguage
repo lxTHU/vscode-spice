@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>fileTypes</key>
+	<array>
+		<string>sp</string>
+		<string>cdl</string>
+		<string>mdl</string>
+		<string>cir</string>
+		<string>mod</string>
+		<string>scs</string>
+		<string>spi</string>
+	</array>
+	<key>name</key>
+	<string>SPICE</string>
+	<key>patterns</key>
+	<array>
+		<dict>
+			<key>comment</key>
+			<string>General SPICE Comments</string>
+			<key>match</key>
+			<string>^[ \t]*\*.*</string>
+			<key>name</key>
+			<string>comment.line.character.sp</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>SPECTRE|HSPICE comments</string>
+			<key>match</key>
+			<string>^[ \t]*//.*</string>
+			<key>name</key>
+			<string>comment.line.character.sp</string>
+		</dict>
+		<dict>
+			<key>begin</key>
+			<string>\;</string>
+			<key>comment</key>
+			<string>PSPICE|NGSPIE inline comment</string>
+			<key>end</key>
+			<string>$</string>
+			<key>name</key>
+			<string>comment.line.character.sp</string>
+		</dict>
+		<dict>
+			<key>begin</key>
+			<string>\$</string>
+			<key>comment</key>
+			<string>NGSPICE inline comment</string>
+			<key>end</key>
+			<string>$</string>
+			<key>name</key>
+			<string>comment.line.character.sp</string>
+		</dict>
+		<dict>
+			<key>begin</key>
+			<string>\'</string>
+			<key>comment</key>
+			<string>Single quotes</string>
+			<key>end</key>
+			<string>\'</string>
+			<key>name</key>
+			<string>string.quoted.single.sp</string>
+		</dict>
+		<dict>
+			<key>begin</key>
+			<string>\"</string>
+			<key>comment</key>
+			<string>Double quotes</string>
+			<key>end</key>
+			<string>\"</string>
+			<key>name</key>
+			<string>string.quoted.double.sp</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Devices</string>
+			<key>match</key>
+			<string>^[\s]*(?i:c|d|j|k|l|m|n|o|p|q|r|s|t|u|w|y|z)[a-zA-Z0-9_@]+</string>
+			<key>name</key>
+			<string>support.type.sp</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Sources</string>
+			<key>match</key>
+			<string>^[\s]*(?i:b|e|f|g|h|v|i)[a-zA-Z0-9_@]+</string>
+			<key>name</key>
+			<string>variable.parameter</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Sub-circuits</string>
+			<key>match</key>
+			<string>^[\s]*(?i:a|x)[a-zA-Z0-9_@]+</string>
+			<key>name</key>
+			<string>entity.name.function</string>
+		</dict>
+		<dict>
+			<key>captures</key>
+			<dict>
+				<key>2</key>
+				<dict>
+					<key>name</key>
+					<string>constant.character.sp</string>
+				</dict>
+			</dict>
+			<key>comment</key>
+			<string>Functions</string>
+			<key>match</key>
+			<string>([\s])((?i:abs|acos|asin|atan|cos|cosh|db|dc|exp|int|log|log10|lv|lx|max|min|pow|pulse|pwl|pwr|sgn|sign|sin|sinh|sqrt|tan|tanh))([=\()]|[\s])</string>
+		</dict>
+		<dict>
+			<key>captures</key>
+			<dict>
+				<key>0</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.operator.sp</string>
+				</dict>
+			</dict>
+			<key>comment</key>
+			<string>Command Parameters</string>
+			<key>match</key>
+			<string>([\s])((?i:deriv|find|targ|tran|trig|when))[\s]*[=\()]</string>
+		</dict>
+		<dict>
+			<key>captures</key>
+			<dict>
+				<key>1</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.operator.sp</string>
+				</dict>
+				<key>2</key>
+				<dict>
+					<key>name</key>
+					<string>string.quoted.double.sp</string>
+				</dict>
+			</dict>
+			<key>comment</key>
+			<string>SPICE commands</string>
+			<key>match</key>
+			<string>^[\s]*([\.]?(?i:include))[\s]+(.*)$</string>
+		</dict>
+		<dict>
+			<key>captures</key>
+			<dict>
+				<key>1</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.operator.sp</string>
+				</dict>
+				<key>2</key>
+				<dict>
+					<key>name</key>
+					<string>constant.character.sp</string>
+				</dict>
+			</dict>
+			<key>comment</key>
+			<string>SPICE commands</string>
+			<key>match</key>
+			<string>^[\s]*([\.]?(?i:subckt|ends))[\s]+([\w]+)</string>
+		</dict>
+		<dict>
+			<key>captures</key>
+			<dict>
+				<key>2</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.operator.sp</string>
+				</dict>
+				<key>3</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.operator.sp</string>
+				</dict>
+			</dict>
+			<key>comment</key>
+			<string>SPICE commands</string>
+			<key>match</key>
+			<string>([\s])((?i:params))[\s]*(\:)</string>
+		</dict>
+		<dict>
+			<key>captures</key>
+			<dict>
+				<key>1</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.operator.sp</string>
+				</dict>
+			</dict>
+			<key>comment</key>
+			<string>SPICE commands</string>
+			<key>match</key>
+			<string>^[\s]*([\.]?(?i:tran|load|to|tf|temp|connect|statistics|simulator|set|sens|section|save|process|probe|print|plot|parameters|param|option|global|op|noise|model|measure|meas|lib|let|ic|from|four|endsection|ends|endl|endc|end|disto|control|alter|dc|ac))</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>SPICEOPUS specific commands</string>
+			<key>match</key>
+			<string>^[\s]*([\.]?(?i:destroy))</string>
+			<key>name</key>
+			<string>keyword.control.sp</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Break line symbol at begin of line</string>
+			<key>match</key>
+			<string>^[ \t]*\+</string>
+			<key>name</key>
+			<string>string.quoted.single.sp</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>At end of line</string>
+			<key>match</key>
+			<string>\+[ \t]$</string>
+			<key>name</key>
+			<string>string.quoted.single.sp</string>
+		</dict>
+	</array>
+	<key>scopeName</key>
+	<string>source.sp</string>
+	<key>uuid</key>
+	<string>b46f7485-a428-48e8-a1f8-05e3afb64e0a</string>
+</dict>
+</plist>
