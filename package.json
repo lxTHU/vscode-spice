@@ -1,0 +1,27 @@
+{
+    "name": "spice",
+    "displayName": "SPICE",
+    "description": "SPICE support",
+    "version": "0.0.1",
+    "icon": "icon.jpg",
+    "publisher": "xuanli",
+    "engines": {
+        "vscode": "^1.15.0"
+    },
+    "categories": [
+        "Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "SPICE",
+            "aliases": ["SPICE", "SPICE"],
+            "extensions": [".sp",".lib",".net",".scs",".ckt",".mdl",".cir"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "SPICE",
+            "scopeName": "source.sp",
+            "path": "./syntaxes/SPICE.tmLanguage"
+        }]
+    }
+}
