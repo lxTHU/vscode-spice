@@ -19,6 +19,11 @@
     - SPICE Commands `.subckt|...` `.tran|...` 
 
 ## In progress
+- [ ] Divide SPICE Dot Commands into: 
+    - [ ] Hierarcy Block `.end|ends|lib|subckt`
+    - [ ] Dot Schematic Command `.backanno|global|include|machine|model|net|`
+    - [ ] Dot Simulation Run `.ac|dc|four|ic|noise|op|tf|tran`
+    - [ ] Dot Simulation Parameter`.func|ferret|loadbias|meas|nodeset|options|param|save|savebias|step|temp|wave`
 - [ ] Determine name--string of `./syntaxes/SPICE.tmlanguage` for mostly used Themes. *(reference Themes' .json file's `scope`&`colors`)* 
 - [ ] Add support for **non**-`Monokai` color themes.
     - [x] support for `Dark+ (default dark)`
