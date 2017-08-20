@@ -1,8 +1,8 @@
 # vscode-spice
 # SPICE support for VSCode
-SPICE support based on [leoheck/sublime-spice](https://github.com/leoheck/sublime-spice) TextMate package.
-Useful reference: [1995parham/vim-spice](https://github.com/1995parham/vim-spice)
-Using with `Monokai` color theme.
+> SPICE support based on [leoheck/sublime-spice](https://github.com/leoheck/sublime-spice) TextMate package.
+* Using with `Monokai` color theme.
+> Other useful reference: [1995parham/vim-spice](https://github.com/1995parham/vim-spice) .
 
 # GitHub repos
 [lxTHU/vscode-spice](https://github.com/lxTHU/vscode-spice)
@@ -26,4 +26,4 @@ Using with `Monokai` color theme.
 5. Create a new Pull Request
 
 ## See also
-[https://marketplace.visualstudio.com/items?itemName=xuanli.spice](https://marketplace.visualstudio.com/items?itemName=xuanli.spice)
+[Seeing in VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=xuanli.spice)
