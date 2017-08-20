@@ -80,7 +80,7 @@
 			<key>match</key>
 			<string>^[\s]*(?i:c|d|j|k|l|m|n|o|p|q|r|s|t|u|w|y|z)[a-zA-Z0-9_@]+</string>
 			<key>name</key>
-			<string>support.type.sp</string>
+			<string>entity.name.function.sp</string>
 		</dict>
 		<dict>
 			<key>comment</key>
@@ -88,7 +88,7 @@
 			<key>match</key>
 			<string>^[\s]*(?i:b|e|f|g|h|v|i)[a-zA-Z0-9_@]+</string>
 			<key>name</key>
-			<string>variable.parameter</string>
+			<string>entity.name.type.sp</string>
 		</dict>
 		<dict>
 			<key>comment</key>
@@ -96,7 +96,7 @@
 			<key>match</key>
 			<string>^[\s]*(?i:a|x)[a-zA-Z0-9_@]+</string>
 			<key>name</key>
-			<string>entity.name.function</string>
+			<string>entity.other.attribute-name</string>
 		</dict>
 		<dict>
 			<key>captures</key>
