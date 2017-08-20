@@ -1,10 +1,19 @@
 {
     "name": "spice",
     "displayName": "SPICE",
-    "description": "SPICE support",
-    "version": "0.0.2",
+    "description": "SPICE language support",
+    "version": "0.0.3",
     "icon": "icon.jpg",
     "publisher": "xuanli",
+    "homepage": "https://github.com/lxTHU/vscode-spice",
+	"repository": {
+        "type": "git",      
+        "url": "https://github.com/lxTHU/vscode-spice.git"
+    },
+
+	"bugs": {
+        "url": "https://github.com/lxTHU/vscode-spice/issues"
+    },
     "engines": {
         "vscode": "^1.15.0"
     },
@@ -13,15 +22,16 @@
     ],
     "contributes": {
         "languages": [{
-            "id": "SPICE",
-            "aliases": ["SPICE", "SPICE"],
-            "extensions": [".sp",".lib",".net",".scs",".ckt",".mdl",".cir"],
+            "id": "spice",
+            "aliases": ["SPICE", "spice"],
+            "extensions": [".sp",".net",".scs",".ckt",".lib",".mdl",".cir",".sub",".mod"],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{
-            "language": "SPICE",
+            "language": "spice",
             "scopeName": "source.sp",
             "path": "./syntaxes/SPICE.tmLanguage"
         }]
+
     }
 }
