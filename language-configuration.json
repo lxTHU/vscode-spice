@@ -10,7 +10,9 @@
     "brackets": [
         ["{", "}"],
         ["[", "]"],
-        ["(", ")"]
+        ["(", ")"],
+        [".subckt", ".ends"],
+        [".lib", ".endl"]
     ],
     // symbols that are auto closed when typing
     "autoClosingPairs": [

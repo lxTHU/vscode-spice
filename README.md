@@ -2,6 +2,7 @@
 # SPICE support for VSCode
 SPICE support based on [leoheck/sublime-spice](https://github.com/leoheck/sublime-spice) TextMate package.
 Useful reference: [1995parham/vim-spice](https://github.com/1995parham/vim-spice)
+Using with `Monokai` color theme.
 
 # GitHub repos
 [lxTHU/vscode-spice](https://github.com/lxTHU/vscode-spice)
@@ -11,8 +12,9 @@ Useful reference: [1995parham/vim-spice](https://github.com/1995parham/vim-spice
 - Syntax highlighting for `.ckt` `.sp` `.net` `.scs` `.cir` `.lib` `.mdl` `.sub` files
 
 ### In progress
-- Fix bug of `./syntaxes/SPICE.tmLanguage` as `./test/sample.png` shows
-    - OR: Using Monokai color theme.
+- [ ] Fix bug of `./syntaxes/SPICE.tmLanguage` as `./test/sample.png` shows
+    - [ ] Add support for **non**-`Monokai` color themes.
+- [ ] Add snippets support
 
 ### In the future
 

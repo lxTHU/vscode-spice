@@ -2,7 +2,7 @@
     "name": "spice",
     "displayName": "SPICE",
     "description": "SPICE language support",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "icon": "icon.jpg",
     "publisher": "xuanli",
     "homepage": "https://github.com/lxTHU/vscode-spice",
