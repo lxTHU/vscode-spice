@@ -12,11 +12,12 @@
 - Syntax highlighting for `.ckt` `.sp` `.net` `.scs` `.cir` `.lib` `.mdl` `.sub` files
 
 ### In progress
-- [ ] Fix bug of `./syntaxes/SPICE.tmLanguage` as `./test/sample.png` shows
-    - [ ] Add support for **non**-`Monokai` color themes.
-- [ ] Add snippets support
+- [ ] Design name string at `./syntaxes/SPICE.tmlanguage` for mostly used themes. (view Themes' .json file's "scope"&"colors") 
+- [ ] Add support for **non**-`Monokai` color themes.
+    - [x] support for `Dark+ (default dark)`
 
 ### In the future
+- [ ] Add snippets support
 
 ## Contributing
 1. Fork it ( [https://github.com/lxTHU/vscode-spice](https://github.com/lxTHU/vscode-spice) )
