@@ -8,10 +8,11 @@ Useful reference: [1995parham/vim-spice](https://github.com/1995parham/vim-spice
 
 ## Features
 ### Done
-- Syntax highlighting for `.ckt` `.sp` files
+- Syntax highlighting for `.ckt` `.sp` `.net` `.scs` `.cir` `.lib` `.mdl` `.sub` files
 
 ### In progress
-- Fix bug of syntaxes/SPICE.tmLanguage as example/sample.png shows
+- Fix bug of `./syntaxes/SPICE.tmLanguage` as `./test/sample.png` shows
+    - OR: Using Monokai color theme.
 
 ### In the future
 
