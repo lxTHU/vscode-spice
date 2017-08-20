@@ -4,13 +4,15 @@
 <dict>
 	<key>fileTypes</key>
 	<array>
+		<string>ckt</string>
 		<string>sp</string>
-		<string>cdl</string>
-		<string>mdl</string>
+		<string>net</string>
 		<string>cir</string>
 		<string>mod</string>
+		<string>mdl</string>
+		<string>lib</string>
+		<string>sub</string>
 		<string>scs</string>
-		<string>spi</string>
 	</array>
 	<key>name</key>
 	<string>SPICE</string>
@@ -102,7 +104,7 @@
 				<key>2</key>
 				<dict>
 					<key>name</key>
-					<string>constant.character.sp</string>
+					<string>keyword.operator.expression.sp</string>
 				</dict>
 			</dict>
 			<key>comment</key>
@@ -116,7 +118,7 @@
 				<key>0</key>
 				<dict>
 					<key>name</key>
-					<string>keyword.operator.sp</string>
+					<string>keyword.control.sp</string>
 				</dict>
 			</dict>
 			<key>comment</key>
@@ -130,7 +132,7 @@
 				<key>1</key>
 				<dict>
 					<key>name</key>
-					<string>keyword.operator.sp</string>
+					<string>keyword.control.sp</string>
 				</dict>
 				<key>2</key>
 				<dict>
@@ -149,12 +151,12 @@
 				<key>1</key>
 				<dict>
 					<key>name</key>
-					<string>keyword.operator.sp</string>
+					<string>keyword.control.sp</string>
 				</dict>
 				<key>2</key>
 				<dict>
 					<key>name</key>
-					<string>constant.character.sp</string>
+					<string>keyword.operator.expression.sp</string>
 				</dict>
 			</dict>
 			<key>comment</key>
@@ -168,12 +170,12 @@
 				<key>2</key>
 				<dict>
 					<key>name</key>
-					<string>keyword.operator.sp</string>
+					<string>keyword.control.sp</string>
 				</dict>
 				<key>3</key>
 				<dict>
 					<key>name</key>
-					<string>keyword.operator.sp</string>
+					<string>keyword.control.sp</string>
 				</dict>
 			</dict>
 			<key>comment</key>
@@ -187,13 +189,13 @@
 				<key>1</key>
 				<dict>
 					<key>name</key>
-					<string>keyword.operator.sp</string>
+					<string>keyword.control.sp</string>
 				</dict>
 			</dict>
 			<key>comment</key>
 			<string>SPICE commands</string>
 			<key>match</key>
-			<string>^[\s]*([\.]?(?i:tran|load|to|tf|temp|connect|statistics|simulator|set|sens|section|save|process|probe|print|plot|parameters|param|option|global|op|noise|model|measure|meas|lib|let|ic|from|four|endsection|ends|endl|endc|end|disto|control|alter|dc|ac))</string>
+			<string>^[\s]*([\.]?(?i:tran|load|to|tf|temp|step|connect|statistics|simulator|set|sens|section|save|process|probe|print|plot|parameters|param|option|global|op|noise|model|measure|meas|lib|let|ic|from|four|endsection|ends|endl|endc|end|disto|control|alter|dc|ac))</string>
 		</dict>
 		<dict>
 			<key>comment</key>
