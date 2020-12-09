@@ -1,0 +1,145 @@
+{
+    "Subcircuit": {
+        "prefix": ".sub",
+        "body": [
+            ".subckt ${1:name} ${2:[parameters]}",
+            "${3:* Subcircuit Body}",
+            ".ends $1"
+        ],
+        "description": "Subcircuit"
+    },
+    "Parameter": {
+        "prefix": ".par",
+        "body": [
+            ".param ${1:name} = ${2:value}"
+        ],
+        "description": "Parameter"
+    },
+    "Initial Condition": {
+        "prefix": ".ic",
+        "body": [
+            ".ic ${1|v,i|}(${2:node}) = ${3:value}"
+        ],
+        "description": "Initial condition"
+    },
+    "If Statement": {
+        "prefix": ".if",
+        "body": ".if (${1:condition})\n\t${2:statement_block}\n.endif",
+        "description": "If statement"
+    },
+    "If/Else Statement": {
+        "prefix": ".if",
+        "body": ".if (${1:condition})\n\t${2:statement_block1}\n.else\n\t${3:statement_block2}\n.endif",
+        "description": "If/Else statement"
+    },
+    "Elseif Statement": {
+        "prefix": ".elseif",
+        "body": ".elseif (${1:condition})\n\t${2:statement_block1}",
+        "description": "Elseif statement"
+    },
+    "Library Declaration": {
+        "prefix": ".lib",
+        "body": ".lib ${1:lib}\n${2:contents}\n.endl $1",
+        "description": "Library Declaration"
+    },
+    "AC Analysis Basic": {
+        "prefix": ".ac",
+        "body": ".ac ${1|dec,oct,lin,poi|} ${2:np} ${3:fstart} ${4:fstop}",
+        "description": ".AC type np fstart fstop"
+    },
+    "AC Analysis Sweep Increment": {
+        "prefix": ".ac",
+        "body": ".ac ${1|dec,oct,lin,poi|} ${2:np} ${3:fstart} ${4:fstop} SWEEP ${5:var} START=${6:start} STOP=${7:stop} STEP=${8:incr}",
+        "description": ".AC type np fstart fstop [SWEEP var [START=]start [STOP=]stop [STEP=]incr]"
+    },
+    "AC Analysis Sweep Start/Stop": {
+        "prefix": ".ac",
+        "body": ".ac ${1|dec,oct,lin,poi|} ${2:np} ${3:fstart} ${4:fstop} SWEEP ${5:var} ${6|dec,oct,lin,poi|} ${7:np} ${8:start} ${9:stop}",
+        "description": ".AC type np fstart fstop [SWEEP var type np start stop]"
+    },
+    "AC Analysis Parameter Sweep Style 1": {
+        "prefix": ".ac",
+        "body": ".ac ${1|dec,oct,lin,poi|} ${2:np} ${3:fstart} ${4:fstop} SWEEP DATA=${5:datanm}",
+        "description": ".AC type np fstart fstop [SWEEP DATA=datanm]"
+    },
+    "AC Analysis Parameter Sweep Style 2": {
+        "prefix": ".ac",
+        "body": ".ac DATA=${1:datanm}",
+        "description": ".AC DATA=datanm"
+    },
+    "AC Analysis Parameter Sweep Increment": {
+        "prefix": ".ac",
+        "body": ".ac DATA=${1:datanm} SWEEP ${2:var} START=${3:start} STOP=${4:stop} STEP=${5:step}",
+        "description": ".AC DATA=datanm [SWEEP var [START=]start [STOP=]stop [STEP=]incr]"
+    },
+    "AC Analysis Parameter Sweep Start/Stop": {
+        "prefix": ".ac",
+        "body": ".ac DATA=${1:datanm} SWEEP ${3:var} ${4|dec,oct,lin,poi|} ${5:np} ${6:start} ${7:stop}",
+        "description": ".AC DATA=datanm [SWEEP var type np start stop]"
+    },
+    "DC Analysis Basic": {
+        "prefix": ".dc",
+        "body": ".dc ${1:var1} START=${2:start1} STOP=${3:stop1} STEP=${4:incr1}",
+        "description": ".DC var1 START=start1 STOP=stop1 STEP=incr1"
+    },
+    "DC Analysis Double Sweep Increment": {
+        "prefix": ".dc",
+        "body": ".dc ${1:var1} ${2:start1} ${3:stop1} ${4:incr1} SWEEP ${5:var2} ${6|dec,oct,lin,poi|} ${7:np} ${8:start2} ${9:stop2}",
+        "description": ".DC var1 START=start1 STOP=stop1 STEP=incr1 [SWEEP var2 type np start2 stop2]"
+    },
+    "DC Analysis Double Sweep Start/Stop": {
+        "prefix": ".dc",
+        "body": ".dc ${1:var1} ${2:start1} ${3:stop1} ${4:incr1} ${5:var2} ${6:start2} ${7:stop2} ${8:incr2}",
+        "description": ".DC var1 start1 stop1 incr1 [var2 start2 stop2 incr2]"
+    },
+    "DC Analysis Data-Driven Sweep Style 1": {
+        "prefix": ".dc",
+        "body": ".dc ${1:var1} ${2|dec,oct,lin,poi|} ${3:np} ${4:start1} ${5:stop1} SWEEP DATA=${6:datanm}",
+        "description": ".DC var1 type np start1 stop1 [SWEEP DATA=datanm]"
+    },
+    "DC Analysis Data-Driven Sweep Style 2": {
+        "prefix": ".dc",
+        "body": ".dc DATA=${1:datanm}",
+        "description": ".DC DATA=datanm"
+    },
+    "DC Analysis Data-Driven Sweep Style 3": {
+        "prefix": ".dc",
+        "body": ".dc DATA=${1:datanm} SWEEP ${2:var2} ${3:start2} ${4:stop2} ${5:incr2}",
+        "description": ".DC DATA=datanm [SWEEP var2 start2 stop2 incr2]"
+    },
+    "Transient Analysis Single-Point": {
+        "prefix": ".tran",
+        "body": ".tran ${1:tstep1} ${2:tstop1}",
+        "description": ".TRAN tstep1 tstop1 [START=val] [UIC]"
+    },
+    "Transient Analysis Multi-Point Start/Stop": {
+        "prefix": ".tran",
+        "body": ".tran ${1:tstep1} ${2:tstop1} SWEEP ${3:var} ${4|dec,oct,lin,poi|} ${5:np} ${6:pstart} ${7:pstop}",
+        "description": ".TRAN tstep1 tstop1 [tstep2 tstop2 ...tstepN tstopN] [START=val] [UIC] [SWEEP var type np pstart pstop]"
+    },
+    "Transient Analysis Multi-Point Increment": {
+        "prefix": ".tran",
+        "body": ".tran ${1:tstep1} ${2:tstop1} SWEEP ${3:var} ${4:start} ${5:stop} ${6:step}",
+        "description": ".TRAN tstep1 tstop1 [tstep2 tstop2 ...tstepN tstopN] [START=val] [UIC] [SWEEP var start_expr stop_expr step_expr]"
+    },
+    "Transient Analysis Data-Driven Sweep": {
+        "prefix": ".tran",
+        "body": ".tran DATA=${1:datanm}",
+        "description": ".TRAN DATA=datanm"
+    },
+    "Transient Analysis Data-Driven Sweep Multi-Point": {
+        "prefix": ".tran",
+        "body": ".tran ${1:tstep1} ${2:tstop1} SWEEP DATA=${3:datanm}",
+        "description": ".TRAN tstep1 tstop1 [tstep2 tstop2 ...tstepN tstopN]  [START=val] [UIC] [SWEEP DATA=datanm]"
+    },
+    "Transient Analysis Data-Driven Sweep Start/Stop": {
+        "prefix": ".tran",
+        "body": ".tran DATA=${1:datanm} SWEEP ${2:var} ${3|dec,oct,lin,poi|} ${4:np} ${5:pstart} ${6:pstop}",
+        "description": ".TRAN DATA=datanm [SWEEP var type np pstart pstop]"
+    },
+    "Transient Analysis Data-Driven Sweep Increment": {
+        "prefix": ".tran",
+        "body": ".tran DATA=${1:datanm} SWEEP ${2:var} ${3:start} ${4:stop} ${5:step}",
+        "description": ".TRAN DATA=datanm [SWEEP var start_expr stop_expr step_expr]"
+    }
+}

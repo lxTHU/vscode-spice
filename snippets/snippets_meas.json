@@ -1,0 +1,16 @@
+{
+    "Measure Rise/Fall/Delay": {
+        "prefix": ".meas",
+        "body": [
+            ".measure ${1|dc,ac,tran|} result trig ${2|i,v|}(${3:trig_node}) val=${4:trig_val} td=${5:0} ${6|rise,fall,cross|}=${7:1} targ ${8|i,v|}(${9:trig_node}) val=${10:trig_val} td=${11:0} ${12|rise,fall,cross|}=${13:1}"
+        ],
+        "description": "Basic Rise, Fall, Delay Measurements"
+    },
+    "Measure When": {
+        "prefix": ".meas",
+        "body": [
+            ".measure ${1|dc,ac,tran|} result when ${2:out_var1}=${3:out_var2} td=${4:0}"
+        ],
+        "description": "When Measurement 1"
+    }
+}
