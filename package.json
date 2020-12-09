@@ -2,7 +2,7 @@
     "name": "spice",
     "displayName": "SPICE",
     "description": "SPICE language support",
-    "version": "0.0.4",
+    "version": "0.1.0",
     "icon": "icon.jpg",
     "publisher": "xuanli",
     "homepage": "https://github.com/lxTHU/vscode-spice",
@@ -10,28 +10,46 @@
         "type": "git",      
         "url": "https://github.com/lxTHU/vscode-spice.git"
     },
-
 	"bugs": {
         "url": "https://github.com/lxTHU/vscode-spice/issues"
     },
+    "license": "MIT",
+
     "engines": {
         "vscode": "^1.15.0"
     },
     "categories": [
         "Programming Languages"
     ],
+    "keywords": [
+        "spice",
+        "syntax",
+        "highlighting",
+        "circuit",
+        "snippets"
+    ],
+
     "contributes": {
         "languages": [{
             "id": "spice",
             "aliases": ["SPICE", "spice"],
-            "extensions": [".sp",".net",".scs",".ckt",".lib",".mdl",".cir",".sub",".mod"],
+            "extensions": [".ckt",".sp",".net",".cir",".scs",".mod",".mdl",".lib",".sub"],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{
             "language": "spice",
             "scopeName": "source.sp",
             "path": "./syntaxes/SPICE.tmLanguage"
-        }]
-
+        }],
+        "snippets": [
+            {
+                "language": "spice",
+                "path": "./snippets/snippets.json"
+            },
+            {
+                "language": "spice",
+                "path": "./snippets/snippets_meas.json"
+            }
+        ]
     }
 }
