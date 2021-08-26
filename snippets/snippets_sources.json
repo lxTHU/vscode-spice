@@ -23,8 +23,8 @@
     "Piece-Wise Linear Source": {
         "prefix": "pwl",
         "body": [
-            "PWL(T1 V1 <T2 V2 ...>)"
+            "pwl(${1:t1} ${2:v1} ${3:t2} ${4:v2}$0)"
         ],
-        "description": "Piece-Wise Linear Source"
+        "description": "PWL(T1 V1 <T2 V2 ...>)"
     }
 }
