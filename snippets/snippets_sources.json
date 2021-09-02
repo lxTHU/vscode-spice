@@ -1,0 +1,30 @@
+{
+    "Pulse Source": {
+        "prefix": "pulse",
+        "body": [
+            "pulse(${1:intial} ${2:peak} ${3:delay_time} ${4:rise_time} ${5:fall_time} ${6:pulse_width} ${7:period})"
+        ],
+        "description": "PULSE(V1 V2 TD TR TF PW PER PHASE)"
+    },
+    "Sinusoidal Source": {
+        "prefix": "sin",
+        "body": [
+            "sin(${1:offset} ${2:amplitude} ${3:frequency})"
+        ],
+        "description": "SIN(VO VA FREQ TD THETA PHASE)"
+    },
+    "Exponential Source": {
+        "prefix": "exp",
+        "body": [
+            "exp(${1:initial} ${2:pulsed} ${3:rise_delay} ${4:rise_time} ${5:fall_delay} ${6:fall_time})"
+        ],
+        "description": "EXP(V1 V2 TD1 TAU1 TD2 TAU2)"
+    },
+    "Piece-Wise Linear Source": {
+        "prefix": "pwl",
+        "body": [
+            "pwl(${1:t1} ${2:v1} ${3:t2} ${4:v2}$0)"
+        ],
+        "description": "PWL(T1 V1 <T2 V2 ...>)"
+    }
+}

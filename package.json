@@ -49,6 +49,10 @@
             {
                 "language": "spice",
                 "path": "./snippets/snippets_meas.json"
+            },
+            {
+                "language": "spice",
+                "path": "./snippets/snippets_sources.json"
             }
         ]
     }
