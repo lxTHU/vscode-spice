@@ -33,6 +33,7 @@
 - [ ] Determine name--string of `./syntaxes/SPICE.tmlanguage` for mostly used Themes. *(reference Themes' .json file's `scope`&`colors`)* 
 - [ ] Add support for **non**-`Monokai` color themes.
     - [x] support for `Dark+ (default dark)`
+- [ ] Support DSPF netlist
 
 ## In the future
 - [ ] Add more snippets support
