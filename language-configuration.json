@@ -34,5 +34,12 @@
         ["'", "'"],
         [".subckt", ".ends"],
         [".lib", ".endl"]
-    ]
+    ],
+    // Add folding condition to subcircuits without having to be indented
+    "folding": {
+        "markers": {
+            "start": "\\.subckt",
+            "end": "\\.ends"
+        }
+    }
 }
