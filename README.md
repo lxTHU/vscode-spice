@@ -175,10 +175,10 @@
 - **Code Folding**: Fold/unfold block structures
 
 ## Supported File Extensions
-`.ckt`, `.sp`, `.net`, `.cir`, `.scs`, `.mod`, `.mdl`, `.lib`, `.sub`, `.lis` (SPICE output listing)
+`.ckt`, `.sp`, `.net`, `.cir`, `.scs`, `.mod`, `.mdl`, `.lib`, `.sub`, `.lis` (SPICE output listing), `.dspf` (DSPF parasitic netlist)
 
 ## Roadmap
-- [ ] Support DSPF netlist
+- [ ] Refine DSPF parasitic R/C grouping highlight
 - [ ] More snippet coverage
 
 ## Contributing

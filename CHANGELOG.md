@@ -3,14 +3,20 @@ All notable changes to the "spice" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [0.2.2] - 2026-07-09
+## [0.2.3] - 2026-07-10
 ### Added
 - Added `.lis` file extension association (SPICE output listing) — closes #8
+- Added `.dspf` file extension association (DSPF parasitic netlist). DSPF uses HSPICE-style syntax, so it is covered by the existing SPICE grammar.
 - Added Spectre snippets (`snippets/snippets_spectre.json`)
-- Added DSPF netlist support to the roadmap
 
 ### Changed
-- Version 0.2.2 (minor feature release)
+- **Case-insensitive keyword matching.** All dot commands and block keywords (`.SUBCKT`, `.LIB`, `.TRAN`, `.MODEL`, `.control`, `.if`, …) now highlight and fold regardless of case, matching the behavior of HSPICE/SPICE3/NGSPICE/LTspice. Applied via an inline `(?i)` modifier on every keyword pattern (the grammar runs under oniguruma, where `(?i)` is honored — not a file-level `flags=i`). Spectre keywords are also matched case-insensitively for consistency.
+
+### Fixed
+- **`.model` block folding.** HSPICE `.model` blocks end with `)` on a `+` continuation line (e.g. `+tnoib='tnoibx' )`), but the fold-end marker only matched `)` at the start of a line, so `.model` blocks never closed and could mis-pair with later `.ends`/`.endl`. The fold-end marker now also matches a `+`-continuation line ending in `)`. Verified against a real multi-MB HSPICE PDK netlist; non-`.model` block nesting (`.lib`/`.subckt`/`.if`/`.data`/`.control`, including 3-level nesting and mixed case) is unchanged.
+- **`.enddata` highlighting.** `.data`/`.enddata` was already a configured folding pair (`language-configuration.json`), but `.enddata` had no grammar rule and rendered as plain text. Added a dedicated `keyword.control.enddata.spice` rule.
+- `.ends` alone (subcircuit end with no name) now matches; the `.subckt`/`.ends` pattern no longer forces a trailing name.
+- Version 0.2.3 (minor feature release)
 
 ### Acknowledgements
 - Code folding for unindented subcircuits/block structures is now built-in via `language-configuration.json` `folding.markers`. Thanks to @Peniaze (#6) and @riduan (#9) for the folding-marker proposals that informed the implementation.
