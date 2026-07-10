@@ -18,212 +18,1048 @@
 	<string>SPICE</string>
 	<key>patterns</key>
 	<array>
+		<!-- Comments -->
 		<dict>
 			<key>comment</key>
-			<string>General SPICE Comments</string>
+			<string>SPICE line comment starting with *</string>
 			<key>match</key>
 			<string>^[ \t]*\*.*</string>
 			<key>name</key>
-			<string>comment.line.character.sp</string>
+			<string>comment.line.asterisk.spice</string>
 		</dict>
 		<dict>
 			<key>comment</key>
-			<string>SPECTRE|HSPICE comments</string>
+			<string>SPECTRE/HSPICE line comment starting with //</string>
 			<key>match</key>
 			<string>^[ \t]*//.*</string>
 			<key>name</key>
-			<string>comment.line.character.sp</string>
+			<string>comment.line.double-slash.spice</string>
 		</dict>
 		<dict>
-			<key>begin</key>
-			<string>\;</string>
 			<key>comment</key>
-			<string>PSPICE|NGSPIE inline comment</string>
+			<string>PSPICE/NGSPICE inline comment starting with ;</string>
+			<key>begin</key>
+			<string>;</string>
 			<key>end</key>
 			<string>$</string>
 			<key>name</key>
-			<string>comment.line.character.sp</string>
+			<string>comment.line.semicolon.spice</string>
 		</dict>
 		<dict>
+			<key>comment</key>
+			<string>NGSPICE inline comment starting with $</string>
 			<key>begin</key>
 			<string>\$</string>
-			<key>comment</key>
-			<string>NGSPICE inline comment</string>
 			<key>end</key>
 			<string>$</string>
 			<key>name</key>
-			<string>comment.line.character.sp</string>
+			<string>comment.line.dollar.spice</string>
 		</dict>
+
+		<!-- Strings -->
 		<dict>
+			<key>comment</key>
+			<string>Single quoted string</string>
 			<key>begin</key>
 			<string>\'</string>
-			<key>comment</key>
-			<string>Single quotes</string>
 			<key>end</key>
 			<string>\'</string>
 			<key>name</key>
-			<string>string.quoted.single.sp</string>
+			<string>string.quoted.single.spice</string>
 		</dict>
 		<dict>
+			<key>comment</key>
+			<string>Double quoted string</string>
 			<key>begin</key>
 			<string>\"</string>
-			<key>comment</key>
-			<string>Double quotes</string>
 			<key>end</key>
 			<string>\"</string>
 			<key>name</key>
-			<string>string.quoted.double.sp</string>
+			<string>string.quoted.double.spice</string>
 		</dict>
+
+		<!-- Hierarchical Blocks (.subckt/.ends, .lib/.endl, .if/.endif, .control/.endc) -->
 		<dict>
 			<key>comment</key>
-			<string>Devices</string>
+			<string>Subcircuit definition</string>
 			<key>match</key>
-			<string>^[\s]*(?i:c|d|j|k|l|m|n|o|p|q|r|s|t|u|w|y|z)[a-zA-Z0-9_@<:>]+</string>
+			<string>^[\s]*\.(?:subckt|ends)[\s]+([\w]+)</string>
 			<key>name</key>
-			<string>entity.name.function.sp</string>
+			<string>keyword.control.subckt.spice</string>
 		</dict>
 		<dict>
 			<key>comment</key>
-			<string>Sources</string>
+			<string>Library block</string>
 			<key>match</key>
-			<string>^[\s]*(?i:b|e|f|g|h|v|i)[a-zA-Z0-9_@<:>]+</string>
+			<string>^[\s]*\.(?:lib|endl)[\s]*</string>
 			<key>name</key>
-			<string>entity.name.type.sp</string>
+			<string>keyword.control.lib.spice</string>
 		</dict>
 		<dict>
 			<key>comment</key>
-			<string>Sub-circuits</string>
+			<string>Control block</string>
 			<key>match</key>
-			<string>^[\s]*(?i:a|x)[a-zA-Z0-9_@]+</string>
+			<string>^[\s]*\.(?:control|endc)[\s]*</string>
 			<key>name</key>
-			<string>entity.other.attribute-name</string>
+			<string>keyword.control.block.spice</string>
 		</dict>
 		<dict>
-			<key>captures</key>
-			<dict>
-				<key>2</key>
-				<dict>
-					<key>name</key>
-					<string>keyword.operator.expression.sp</string>
-				</dict>
-			</dict>
 			<key>comment</key>
-			<string>Functions</string>
+			<string>If/Else/Endif block</string>
 			<key>match</key>
-			<string>([\s])((?i:abs|acos|asin|atan|cos|cosh|db|dc|exp|int|log|log10|lv|lx|max|min|pow|pulse|pwl|pwr|sgn|sign|sin|sinh|sqrt|tan|tanh))([=\()]|[\s])</string>
+			<string>^[\s]*\.(?:if|elseif|else|endif)[\s]*</string>
+			<key>name</key>
+			<string>keyword.control.conditional.spice</string>
 		</dict>
+
+		<!-- Spectre-Specific Keywords -->
 		<dict>
-			<key>captures</key>
-			<dict>
-				<key>0</key>
-				<dict>
-					<key>name</key>
-					<string>keyword.control.sp</string>
-				</dict>
-			</dict>
 			<key>comment</key>
-			<string>Command Parameters</string>
+			<string>Spectre subcircuit definition</string>
 			<key>match</key>
-			<string>([\s])((?i:deriv|find|targ|tran|trig|when))[\s]*[=\()]</string>
+			<string>^\s*(?:subckt|ends)\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.subckt.spice</string>
 		</dict>
 		<dict>
+			<key>comment</key>
+			<string>Spectre parameters</string>
+			<key>match</key>
+			<string>^\s*parameters?\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.param.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre simulator</string>
+			<key>match</key>
+			<string>^\s*simulator\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.simulator.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre analysis</string>
+			<key>match</key>
+			<string>^\s*analysis\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.analysis.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre design</string>
+			<key>match</key>
+			<string>^\s*design\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.design.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre model</string>
+			<key>match</key>
+			<string>^\s*model\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.model.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre instance</string>
+			<key>match</key>
+			<string>^\s*instance\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.instance.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre global</string>
+			<key>match</key>
+			<string>^\s*global\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.global.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre include</string>
+			<key>match</key>
+			<string>^\s*include\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.include.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre info</string>
+			<key>match</key>
+			<string>^\s*info\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.info.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre save</string>
+			<key>match</key>
+			<string>^\s*save\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.save.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre plot</string>
+			<key>match</key>
+			<string>^\s*plot\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.plot.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre print</string>
+			<key>match</key>
+			<string>^\s*print\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.print.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre assert</string>
+			<key>match</key>
+			<string>^\s*assert\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.assert.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre alter</string>
+			<key>match</key>
+			<string>^\s*alter\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.alter.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre statistics</string>
+			<key>match</key>
+			<string>^\s*(?:statistics|process|section|endsection)\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.stats.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre connect</string>
+			<key>match</key>
+			<string>^\s*connect\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.connect.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre options</string>
+			<key>match</key>
+			<string>^\s*options\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.options.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre temp</string>
+			<key>match</key>
+			<string>^\s*temp\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.temp.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre lib</string>
+			<key>match</key>
+			<string>^\s*lib\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.lib.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre if/else/endif</string>
+			<key>match</key>
+			<string>^\s*(?:if|elseif|else|endif)\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.conditional.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre control/endc</string>
+			<key>match</key>
+			<string>^\s*(?:control|endc)\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.block.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre end</string>
+			<key>match</key>
+			<string>^\s*end\b</string>
+			<key>name</key>
+			<string>keyword.control.spectre.end.spice</string>
+		</dict>
+
+		<!-- Spectre Analysis Types -->
+		<dict>
+			<key>comment</key>
+			<string>Spectre AC analysis</string>
+			<key>match</key>
+			<string>^\s*ac\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.ac.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre DC analysis</string>
+			<key>match</key>
+			<string>^\s*dc\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.dc.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre transient analysis</string>
+			<key>match</key>
+			<string>^\s*tran\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.tran.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre noise analysis</string>
+			<key>match</key>
+			<string>^\s*noise\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.noise.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre stb analysis</string>
+			<key>match</key>
+			<string>^\s*stb\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.stb.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre pss analysis</string>
+			<key>match</key>
+			<string>^\s*pss\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.pss.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre pac analysis</string>
+			<key>match</key>
+			<string>^\s*pac\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.pac.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre pnoise analysis</string>
+			<key>match</key>
+			<string>^\s*pnoise\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.pnoise.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre xf analysis</string>
+			<key>match</key>
+			<string>^\s*xf\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.xf.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre dcmatch analysis</string>
+			<key>match</key>
+			<string>^\s*dcmatch\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.dcmatch.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre acmatch analysis</string>
+			<key>match</key>
+			<string>^\s*acmatch\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.acmatch.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre sens analysis</string>
+			<key>match</key>
+			<string>^\s*sens\s*\w*\s*\b</string>
+			<key>name</key>
+			<string>keyword.other.spectre.sens.spice</string>
+		</dict>
+
+		<!-- Spectre Device Prefixes -->
+		<dict>
+			<key>comment</key>
+			<string>Spectre resistor</string>
+			<key>match</key>
+			<string>^\s*resistor\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.resistor.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre capacitor</string>
+			<key>match</key>
+			<string>^\s*capacitor\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.capacitor.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre inductor</string>
+			<key>match</key>
+			<string>^\s*inductor\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.inductor.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre diode</string>
+			<key>match</key>
+			<string>^\s*diode\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.diode.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre bipolar</string>
+			<key>match</key>
+			<string>^\s*bipolar\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.bjt.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre mosfet</string>
+			<key>match</key>
+			<string>^\s*mosfet\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.mosfet.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre jfet</string>
+			<key>match</key>
+			<string>^\s*jfet\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.jfet.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre voltage source</string>
+			<key>match</key>
+			<string>^\s*vsource\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.vsource.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre current source</string>
+			<key>match</key>
+			<string>^\s*isource\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.isource.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre vcvs</string>
+			<key>match</key>
+			<string>^\s*vcvs\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.vcvs.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre vccs</string>
+			<key>match</key>
+			<string>^\s*vccs\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.vccs.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre ccvs</string>
+			<key>match</key>
+			<string>^\s*ccvs\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.ccvs.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre cccs</string>
+			<key>match</key>
+			<string>^\s*cccs\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.cccs.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre transmission line</string>
+			<key>match</key>
+			<string>^\s*tline\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.tline.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Spectre switch</string>
+			<key>match</key>
+			<string>^\s*switch\b</string>
+			<key>name</key>
+			<string>entity.name.type.spectre.switch.spice</string>
+		</dict>
+
+		<!-- Simulation Commands -->
+		<dict>
+			<key>comment</key>
+			<string>AC analysis command</string>
+			<key>match</key>
+			<string>^[\s]*\.ac[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.ac.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>DC analysis command</string>
+			<key>match</key>
+			<string>^[\s]*\.dc[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.dc.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Transient analysis command</string>
+			<key>match</key>
+			<string>^[\s]*\.tran[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.tran.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Operating point command</string>
+			<key>match</key>
+			<string>^[\s]*\.op[\s]*</string>
+			<key>name</key>
+			<string>keyword.other.op.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Noise analysis command</string>
+			<key>match</key>
+			<string>^[\s]*\.noise[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.noise.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Transfer function command</string>
+			<key>match</key>
+			<string>^[\s]*\.tf[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.tf.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Distortion analysis command</string>
+			<key>match</key>
+			<string>^[\s]*\.disto[\s]*</string>
+			<key>name</key>
+			<string>keyword.other.disto.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Fourier analysis command</string>
+			<key>match</key>
+			<string>^[\s]*\.four[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.four.spice</string>
+		</dict>
+
+		<!-- Dot Commands - Configuration -->
+		<dict>
+			<key>comment</key>
+			<string>Include command</string>
+			<key>match</key>
+			<string>^[\s]*\.(?:include|inc)[\s]+(.*)$</string>
+			<key>name</key>
+			<string>keyword.other.include.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Model command</string>
+			<key>match</key>
+			<string>^[\s]*\.model[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.model.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Parameter definition</string>
+			<key>match</key>
+			<string>^[\s]*\.param[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.param.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Global node</string>
+			<key>match</key>
+			<string>^[\s]*\.global[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.global.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Options command</string>
+			<key>match</key>
+			<string>^[\s]*\.options?[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.options.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Temperature command</string>
+			<key>match</key>
+			<string>^[\s]*\.temp[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.temp.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Step command</string>
+			<key>match</key>
+			<string>^[\s]*\.step[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.step.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Nodeset command</string>
+			<key>match</key>
+			<string>^[\s]*\.nodeset[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.nodeset.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Initial condition command</string>
+			<key>match</key>
+			<string>^[\s]*\.ic[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.ic.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Function definition</string>
+			<key>match</key>
+			<string>^[\s]*\.func[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.func.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Measure command</string>
+			<key>match</key>
+			<string>^[\s]*\.meas(?:ure)?[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.meas.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Save command</string>
+			<key>match</key>
+			<string>^[\s]*\.save[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.save.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Probe/Print/Plot commands</string>
+			<key>match</key>
+			<string>^[\s]*\.(?:probe|print|plot)[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.output.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Connect command</string>
+			<key>match</key>
+			<string>^[\s]*\.connect[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.connect.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Statistics/Process commands</string>
+			<key>match</key>
+			<string>^[\s]*\.(?:statistics|process|section|endsection)[\s]*</string>
+			<key>name</key>
+			<string>keyword.other.stats.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Alter command</string>
+			<key>match</key>
+			<string>^[\s]*\.alter[\s]*</string>
+			<key>name</key>
+			<string>keyword.other.alter.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Data directive</string>
+			<key>match</key>
+			<string>^[\s]*\.data[\s]+</string>
+			<key>name</key>
+			<string>keyword.other.data.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>End command</string>
+			<key>match</key>
+			<string>^[\s]*\.end[\s]*$</string>
+			<key>name</key>
+			<string>keyword.control.end.spice</string>
+		</dict>
+
+		<!-- Device Instances (Passive: R, L, C, K) -->
+		<dict>
+			<key>comment</key>
+			<string>Resistor instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:R)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.resistor.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Capacitor instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:C)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.capacitor.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Inductor instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:L)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.inductor.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Coupled inductor instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:K)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.coupling.spice</string>
+		</dict>
+
+		<!-- Device Instances (Active: D, Q, J, M, Z) -->
+		<dict>
+			<key>comment</key>
+			<string>Diode instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:D)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.diode.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>BJT instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:Q)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.bjt.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>JFET instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:J)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.jfet.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>MOSFET instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:M)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.mosfet.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>MESFET instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:Z)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.mesfet.spice</string>
+		</dict>
+
+		<!-- Device Instances (Other: T, U, W, Y, N, O, P, S) -->
+		<dict>
+			<key>comment</key>
+			<string>Transmission line instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:T)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.tline.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Digital instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:U)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.digital.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Switch instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:S|W)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.switch.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Lossy transmission line</string>
+			<key>match</key>
+			<string>^[\s]*(?i:Y|O|P)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.ltl.spice</string>
+		</dict>
+
+		<!-- Source Instances (V, I, B, E, F, G, H) -->
+		<dict>
+			<key>comment</key>
+			<string>Voltage source instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:V)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.vsource.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Current source instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:I)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.isource.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Behavioral source instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:B)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.behavioral.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>VCVS instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:E)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.vcvs.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>CCCS instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:F)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.cccs.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>VCCS instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:G)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.vccs.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>CCVS instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:H)[a-zA-Z0-9_@&lt;&gt;:]+</string>
+			<key>name</key>
+			<string>entity.name.type.ccvs.spice</string>
+		</dict>
+
+		<!-- Subcircuit Instance -->
+		<dict>
+			<key>comment</key>
+			<string>Subcircuit instance</string>
+			<key>match</key>
+			<string>^[\s]*(?i:X)[a-zA-Z0-9_@]+</string>
+			<key>name</key>
+			<string>entity.name.type.subckt-instance.spice</string>
+		</dict>
+
+		<!-- Functions -->
+		<dict>
+			<key>comment</key>
+			<string>Math functions</string>
+			<key>match</key>
+			<string>(?i:abs|acos|asin|atan|cos|cosh|db|exp|int|log|log10|max|min|pow|pwr|sgn|sign|sin|sinh|sqrt|tan|tanh)</string>
+			<key>name</key>
+			<string>support.function.math.spice</string>
+		</dict>
+
+		<!-- Source Functions -->
+		<dict>
+			<key>comment</key>
+			<string>Source functions</string>
+			<key>match</key>
+			<string>(?i:pulse|pwl|sin|exp|sffm|am)</string>
+			<key>name</key>
+			<string>support.function.source.spice</string>
+		</dict>
+
+		<!-- Measure Keywords -->
+		<dict>
+			<key>comment</key>
+			<string>Measure keywords</string>
+			<key>match</key>
+			<string>(?i:trig|targ|when|find|derivative|avg|min|max|rms|pp|base|cross|rise|fall|delay|param)</string>
+			<key>name</key>
+			<string>keyword.other.measure.spice</string>
+		</dict>
+
+		<!-- Comparison and Logical Operators -->
+		<dict>
+			<key>comment</key>
+			<string>Comparison operators</string>
+			<key>match</key>
+			<string>(?:&lt;|&gt;|&lt;=|&gt;=|==|!=)</string>
+			<key>name</key>
+			<string>keyword.operator.comparison.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>Logical operators</string>
+			<key>match</key>
+			<string>(?:&amp;&amp;|\|\||&amp;|\|)</string>
+			<key>name</key>
+			<string>keyword.operator.logical.spice</string>
+		</dict>
+
+		<!-- Scientific Notation Numbers (e.g., 1.5e+09, 2.3E-12) -->
+		<dict>
+			<key>comment</key>
+			<string>Scientific notation numbers</string>
 			<key>captures</key>
 			<dict>
 				<key>1</key>
 				<dict>
 					<key>name</key>
-					<string>keyword.control.sp</string>
+					<string>constant.numeric.base.spice</string>
 				</dict>
 				<key>2</key>
 				<dict>
 					<key>name</key>
-					<string>string.quoted.double.sp</string>
-				</dict>
-			</dict>
-			<key>comment</key>
-			<string>SPICE commands</string>
-			<key>match</key>
-			<string>^[\s]*([\.]?(?i:include|inc))[\s]+(.*)$</string>
-		</dict>
-		<dict>
-			<key>captures</key>
-			<dict>
-				<key>1</key>
-				<dict>
-					<key>name</key>
-					<string>keyword.control.sp</string>
-				</dict>
-				<key>2</key>
-				<dict>
-					<key>name</key>
-					<string>keyword.operator.expression.sp</string>
-				</dict>
-			</dict>
-			<key>comment</key>
-			<string>SPICE commands</string>
-			<key>match</key>
-			<string>^[\s]*([\.]?(?i:subckt|ends))[\s]+([\w]+)</string>
-		</dict>
-		<dict>
-			<key>captures</key>
-			<dict>
-				<key>2</key>
-				<dict>
-					<key>name</key>
-					<string>keyword.control.sp</string>
+					<string>keyword.operator.exponent.spice</string>
 				</dict>
 				<key>3</key>
 				<dict>
 					<key>name</key>
-					<string>keyword.control.sp</string>
+					<string>constant.numeric.exponent.spice</string>
+				</dict>
+				<key>4</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.operator.unit.spice</string>
 				</dict>
 			</dict>
-			<key>comment</key>
-			<string>SPICE commands</string>
 			<key>match</key>
-			<string>([\s])((?i:params))[\s]*(\:)</string>
+			<string>(\d+\.?\d*)([eE])([+-]?\d+)([TGMKkmunpf]?[vVaAwWmMuUsSnNpPfF]?)\b</string>
 		</dict>
+
+		<!-- Numbers with Engineering Units (e.g., 1k, 100n, 2.2u) -->
 		<dict>
+			<key>comment</key>
+			<string>Numbers with engineering units</string>
 			<key>captures</key>
 			<dict>
 				<key>1</key>
 				<dict>
 					<key>name</key>
-					<string>keyword.control.sp</string>
+					<string>constant.numeric.value.spice</string>
+				</dict>
+				<key>2</key>
+				<dict>
+					<key>name</key>
+					<string>keyword.operator.unit.spice</string>
 				</dict>
 			</dict>
-			<key>comment</key>
-			<string>SPICE commands</string>
 			<key>match</key>
-			<string>^[\s]*([\.]?(?i:tran|load|to|tf|temp|step|connect|statistics|simulator|set|sens|section|save|process|probe|print|plot|parameters|param|option|global|op|noise|model|measure|meas|lib|let|ic|from|four|endsection|ends|endl|endc|end|disto|control|alter|dc|ac|if|elseif|endif|else|hdl))</string>
+			<string>(\d+\.?\d*)([TGMKkmunpf][vVaAwWmMuUsSnNpPfF]?)\b</string>
 		</dict>
+
+		<!-- Plain Numbers -->
 		<dict>
 			<key>comment</key>
-			<string>SPICEOPUS specific commands</string>
+			<string>Plain numbers</string>
 			<key>match</key>
-			<string>^[\s]*([\.]?(?i:destroy))</string>
+			<string>\b\d+\.?\d*\b</string>
 			<key>name</key>
-			<string>keyword.control.sp</string>
+			<string>constant.numeric.plain.spice</string>
 		</dict>
+
+		<!-- Line Continuation -->
 		<dict>
 			<key>comment</key>
-			<string>Break line symbol at begin of line</string>
+			<string>Line continuation at beginning</string>
 			<key>match</key>
 			<string>^[ \t]*\+</string>
 			<key>name</key>
-			<string>string.quoted.single.sp</string>
+			<string>keyword.operator.line-continuation.spice</string>
 		</dict>
+
+		<!-- Parameter Assignment -->
 		<dict>
 			<key>comment</key>
-			<string>At end of line</string>
+			<string>Parameter assignment with =</string>
 			<key>match</key>
-			<string>\+[ \t]$</string>
+			<string>(?i:params?)\s*:</string>
 			<key>name</key>
-			<string>string.quoted.single.sp</string>
+			<string>keyword.operator.param.spice</string>
+		</dict>
+
+		<!-- Sweep Keywords -->
+		<dict>
+			<key>comment</key>
+			<string>Sweep keywords</string>
+			<key>match</key>
+			<string>(?i:SWEEP|START|STOP|STEP|DATA)</string>
+			<key>name</key>
+			<string>keyword.other.sweep.spice</string>
+		</dict>
+
+		<!-- Analysis Type Keywords -->
+		<dict>
+			<key>comment</key>
+			<string>Analysis type keywords</string>
+			<key>match</key>
+			<string>(?i:dec|oct|lin|poi)</string>
+			<key>name</key>
+			<string>keyword.other.analysis-type.spice</string>
 		</dict>
 	</array>
 	<key>scopeName</key>
-	<string>source.sp</string>
+	<string>source.spice</string>
 	<key>uuid</key>
 	<string>b46f7485-a428-48e8-a1f8-05e3afb64e0a</string>
 </dict>
