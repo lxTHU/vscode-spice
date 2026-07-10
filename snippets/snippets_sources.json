@@ -2,29 +2,57 @@
     "Pulse Source": {
         "prefix": "pulse",
         "body": [
-            "pulse(${1:intial} ${2:peak} ${3:delay_time} ${4:rise_time} ${5:fall_time} ${6:pulse_width} ${7:period})"
+            "PULSE(${1:initial} ${2:peak} ${3:delay} ${4:rise} ${5:fall} ${6:width} ${7:period})"
         ],
-        "description": "PULSE(V1 V2 TD TR TF PW PER PHASE)"
+        "description": "PULSE(V1 V2 TD TR TF PW PER)"
     },
     "Sinusoidal Source": {
         "prefix": "sin",
         "body": [
-            "sin(${1:offset} ${2:amplitude} ${3:frequency})"
+            "SIN(${1:offset} ${2:amplitude} ${3:frequency} ${4:delay} ${5:damping} ${6:phase})"
         ],
         "description": "SIN(VO VA FREQ TD THETA PHASE)"
     },
     "Exponential Source": {
         "prefix": "exp",
         "body": [
-            "exp(${1:initial} ${2:pulsed} ${3:rise_delay} ${4:rise_time} ${5:fall_delay} ${6:fall_time})"
+            "EXP(${1:initial} ${2:pulsed} ${3:rise_delay} ${4:rise_tau} ${5:fall_delay} ${6:fall_tau})"
         ],
         "description": "EXP(V1 V2 TD1 TAU1 TD2 TAU2)"
     },
     "Piece-Wise Linear Source": {
         "prefix": "pwl",
         "body": [
-            "pwl(${1:t1} ${2:v1} ${3:t2} ${4:v2}$0)"
+            "PWL(${1:t1} ${2:v1} ${3:t2} ${4:v2} ${5:t3} ${6:v3}$0)"
         ],
-        "description": "PWL(T1 V1 <T2 V2 ...>)"
+        "description": "PWL(T1 V1 T2 V2 T3 V3 ...)"
+    },
+    "Single FM Source": {
+        "prefix": "sffm",
+        "body": [
+            "SFFM(${1:offset} ${2:amplitude} ${3:carrier_freq} ${4:mod_index} ${5:signal_freq})"
+        ],
+        "description": "SFFM(VO VA FC MDI FS)"
+    },
+    "AM Source": {
+        "prefix": "am",
+        "body": [
+            "AM(${1:amplitude} ${2:carrier_freq} ${3:mod_index} ${4:signal_freq} ${5:phase})"
+        ],
+        "description": "AM(VA FC MDI FS PHASE)"
+    },
+    "DC Value": {
+        "prefix": "dc",
+        "body": [
+            "DC ${1:value}"
+        ],
+        "description": "DC value"
+    },
+    "AC Value": {
+        "prefix": "ac",
+        "body": [
+            "AC ${1:magnitude} ${2:phase}"
+        ],
+        "description": "AC magnitude and phase"
     }
 }

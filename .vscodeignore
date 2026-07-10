@@ -1,0 +1,19 @@
+# VS Code extension packaging — exclude everything not needed at runtime.
+# Keep: package.json, language-configuration.json, syntaxes/, snippets/, icon.jpg, README.md, CHANGELOG.md, LICENSE
+
+# Test / dev artifacts
+test/
+.vscode/
+*.sp
+vsc-extension-quickstart.md
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Docs (README/CHANGELOG/LICENSE are auto-included by vsce)
+docs/
+
+# Build output
+*.vsix

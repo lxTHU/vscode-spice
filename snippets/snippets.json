@@ -29,13 +29,20 @@
         ],
         "description": "Initial condition"
     },
+    "Nodeset": {
+        "prefix": ".node",
+        "body": [
+            ".nodeset ${1|v,i|}(${2:node}) = ${3:value}"
+        ],
+        "description": "Nodeset"
+    },
     "If Statement": {
         "prefix": ".if",
         "body": ".if (${1:condition})\n\t${2:statement_block}\n.endif",
         "description": "If statement"
     },
     "If/Else Statement": {
-        "prefix": ".if",
+        "prefix": ".ifelse",
         "body": ".if (${1:condition})\n\t${2:statement_block1}\n.else\n\t${3:statement_block2}\n.endif",
         "description": "If/Else statement"
     },
@@ -49,104 +56,391 @@
         "body": ".lib ${1:lib}\n${2:contents}\n.endl $1",
         "description": "Library Declaration"
     },
+    "Include": {
+        "prefix": ".inc",
+        "body": ".include ${1:filename}",
+        "description": "Include file"
+    },
+    "Model": {
+        "prefix": ".mod",
+        "body": ".model ${1:name} ${2:type} (${3:parameters})",
+        "description": "Model definition"
+    },
+    "Global": {
+        "prefix": ".glob",
+        "body": ".global ${1:node}",
+        "description": "Global node"
+    },
+    "Options": {
+        "prefix": ".opt",
+        "body": ".options ${1:option}=${2:value}",
+        "description": "Simulation options"
+    },
+    "Temperature": {
+        "prefix": ".temp",
+        "body": ".temp ${1:temperature}",
+        "description": "Temperature"
+    },
+    "Function": {
+        "prefix": ".func",
+        "body": ".func ${1:name}(${2:args}) {${3:expression}}",
+        "description": "Function definition"
+    },
+    "Data Block": {
+        "prefix": ".data",
+        "body": ".data ${1:name}\n${2:var1} ${3:var2}\n${4:val1} ${5:val2}\n.enddata",
+        "description": "Data block"
+    },
+    "End": {
+        "prefix": ".end",
+        "body": ".end",
+        "description": "End of netlist"
+    },
+
     "AC Analysis Basic": {
         "prefix": ".ac",
         "body": ".ac ${1|dec,oct,lin,poi|} ${2:np} ${3:fstart} ${4:fstop}",
         "description": ".AC type np fstart fstop"
     },
     "AC Analysis Sweep Increment": {
-        "prefix": ".ac",
+        "prefix": ".acswp",
         "body": ".ac ${1|dec,oct,lin,poi|} ${2:np} ${3:fstart} ${4:fstop} SWEEP ${5:var} START=${6:start} STOP=${7:stop} STEP=${8:incr}",
-        "description": ".AC type np fstart fstop [SWEEP var [START=]start [STOP=]stop [STEP=]incr]"
+        "description": ".AC type np fstart fstop SWEEP var START=start STOP=stop STEP=incr"
     },
     "AC Analysis Sweep Start/Stop": {
-        "prefix": ".ac",
+        "prefix": ".acsws",
         "body": ".ac ${1|dec,oct,lin,poi|} ${2:np} ${3:fstart} ${4:fstop} SWEEP ${5:var} ${6|dec,oct,lin,poi|} ${7:np} ${8:start} ${9:stop}",
-        "description": ".AC type np fstart fstop [SWEEP var type np start stop]"
+        "description": ".AC type np fstart fstop SWEEP var type np start stop"
     },
-    "AC Analysis Parameter Sweep Style 1": {
-        "prefix": ".ac",
-        "body": ".ac ${1|dec,oct,lin,poi|} ${2:np} ${3:fstart} ${4:fstop} SWEEP DATA=${5:datanm}",
-        "description": ".AC type np fstart fstop [SWEEP DATA=datanm]"
-    },
-    "AC Analysis Parameter Sweep Style 2": {
-        "prefix": ".ac",
+    "AC Analysis Data-Driven": {
+        "prefix": ".acdata",
         "body": ".ac DATA=${1:datanm}",
         "description": ".AC DATA=datanm"
     },
-    "AC Analysis Parameter Sweep Increment": {
-        "prefix": ".ac",
-        "body": ".ac DATA=${1:datanm} SWEEP ${2:var} START=${3:start} STOP=${4:stop} STEP=${5:step}",
-        "description": ".AC DATA=datanm [SWEEP var [START=]start [STOP=]stop [STEP=]incr]"
-    },
-    "AC Analysis Parameter Sweep Start/Stop": {
-        "prefix": ".ac",
-        "body": ".ac DATA=${1:datanm} SWEEP ${3:var} ${4|dec,oct,lin,poi|} ${5:np} ${6:start} ${7:stop}",
-        "description": ".AC DATA=datanm [SWEEP var type np start stop]"
-    },
+
     "DC Analysis Basic": {
         "prefix": ".dc",
         "body": ".dc ${1:var1} START=${2:start1} STOP=${3:stop1} STEP=${4:incr1}",
         "description": ".DC var1 START=start1 STOP=stop1 STEP=incr1"
     },
-    "DC Analysis Double Sweep Increment": {
-        "prefix": ".dc",
+    "DC Analysis Double Sweep": {
+        "prefix": ".dcswp",
         "body": ".dc ${1:var1} ${2:start1} ${3:stop1} ${4:incr1} SWEEP ${5:var2} ${6|dec,oct,lin,poi|} ${7:np} ${8:start2} ${9:stop2}",
-        "description": ".DC var1 START=start1 STOP=stop1 STEP=incr1 [SWEEP var2 type np start2 stop2]"
+        "description": ".DC var1 start1 stop1 incr1 SWEEP var2 type np start2 stop2"
     },
-    "DC Analysis Double Sweep Start/Stop": {
-        "prefix": ".dc",
-        "body": ".dc ${1:var1} ${2:start1} ${3:stop1} ${4:incr1} ${5:var2} ${6:start2} ${7:stop2} ${8:incr2}",
-        "description": ".DC var1 start1 stop1 incr1 [var2 start2 stop2 incr2]"
-    },
-    "DC Analysis Data-Driven Sweep Style 1": {
-        "prefix": ".dc",
-        "body": ".dc ${1:var1} ${2|dec,oct,lin,poi|} ${3:np} ${4:start1} ${5:stop1} SWEEP DATA=${6:datanm}",
-        "description": ".DC var1 type np start1 stop1 [SWEEP DATA=datanm]"
-    },
-    "DC Analysis Data-Driven Sweep Style 2": {
-        "prefix": ".dc",
+    "DC Analysis Data-Driven": {
+        "prefix": ".dcdata",
         "body": ".dc DATA=${1:datanm}",
         "description": ".DC DATA=datanm"
     },
-    "DC Analysis Data-Driven Sweep Style 3": {
-        "prefix": ".dc",
-        "body": ".dc DATA=${1:datanm} SWEEP ${2:var2} ${3:start2} ${4:stop2} ${5:incr2}",
-        "description": ".DC DATA=datanm [SWEEP var2 start2 stop2 incr2]"
-    },
-    "Transient Analysis Single-Point": {
+
+    "Transient Analysis Basic": {
         "prefix": ".tran",
-        "body": ".tran ${1:tstep1} ${2:tstop1}",
-        "description": ".TRAN tstep1 tstop1 [START=val] [UIC]"
+        "body": ".tran ${1:tstep} ${2:tstop}",
+        "description": ".TRAN tstep tstop"
     },
-    "Transient Analysis Multi-Point Start/Stop": {
-        "prefix": ".tran",
-        "body": ".tran ${1:tstep1} ${2:tstop1} SWEEP ${3:var} ${4|dec,oct,lin,poi|} ${5:np} ${6:pstart} ${7:pstop}",
-        "description": ".TRAN tstep1 tstop1 [tstep2 tstop2 ...tstepN tstopN] [START=val] [UIC] [SWEEP var type np pstart pstop]"
+    "Transient Analysis with Start": {
+        "prefix": ".trans",
+        "body": ".tran ${1:tstep} ${2:tstop} START=${3:tstart} UIC",
+        "description": ".TRAN tstep tstop START=tstart UIC"
     },
-    "Transient Analysis Multi-Point Increment": {
-        "prefix": ".tran",
-        "body": ".tran ${1:tstep1} ${2:tstop1} SWEEP ${3:var} ${4:start} ${5:stop} ${6:step}",
-        "description": ".TRAN tstep1 tstop1 [tstep2 tstop2 ...tstepN tstopN] [START=val] [UIC] [SWEEP var start_expr stop_expr step_expr]"
+    "Transient Analysis Sweep": {
+        "prefix": ".transwp",
+        "body": ".tran ${1:tstep} ${2:tstop} SWEEP ${3:var} ${4:start} ${5:stop} ${6:step}",
+        "description": ".TRAN tstep tstop SWEEP var start stop step"
     },
-    "Transient Analysis Data-Driven Sweep": {
-        "prefix": ".tran",
+    "Transient Analysis Data-Driven": {
+        "prefix": ".trandata",
         "body": ".tran DATA=${1:datanm}",
         "description": ".TRAN DATA=datanm"
     },
-    "Transient Analysis Data-Driven Sweep Multi-Point": {
-        "prefix": ".tran",
-        "body": ".tran ${1:tstep1} ${2:tstop1} SWEEP DATA=${3:datanm}",
-        "description": ".TRAN tstep1 tstop1 [tstep2 tstop2 ...tstepN tstopN]  [START=val] [UIC] [SWEEP DATA=datanm]"
+
+    "Operating Point": {
+        "prefix": ".op",
+        "body": ".op",
+        "description": "Operating point analysis"
     },
-    "Transient Analysis Data-Driven Sweep Start/Stop": {
-        "prefix": ".tran",
-        "body": ".tran DATA=${1:datanm} SWEEP ${2:var} ${3|dec,oct,lin,poi|} ${4:np} ${5:pstart} ${6:pstop}",
-        "description": ".TRAN DATA=datanm [SWEEP var type np pstart pstop]"
+
+    "Noise Analysis": {
+        "prefix": ".noise",
+        "body": ".noise ${1:v(out)} ${2:src} ${3|dec,oct,lin,poi|} ${4:np} ${5:fstart} ${6:fstop}",
+        "description": ".NOISE v(out) src type np fstart fstop"
     },
-    "Transient Analysis Data-Driven Sweep Increment": {
-        "prefix": ".tran",
-        "body": ".tran DATA=${1:datanm} SWEEP ${2:var} ${3:start} ${4:stop} ${5:step}",
-        "description": ".TRAN DATA=datanm [SWEEP var start_expr stop_expr step_expr]"
+
+    "Transfer Function": {
+        "prefix": ".tf",
+        "body": ".tf ${1:v(out)} ${2:src}",
+        "description": ".TF v(out) src"
+    },
+
+    "Fourier Analysis": {
+        "prefix": ".four",
+        "body": ".four ${1:freq} ${2:v(out)}",
+        "description": ".FOUR freq v(out)"
+    },
+
+    "Distortion Analysis": {
+        "prefix": ".disto",
+        "body": ".disto ${1|dec,oct,lin,poi|} ${2:np} ${3:fstart} ${4:fstop}",
+        "description": ".DISTO type np fstart fstop"
+    },
+
+    "Step Command": {
+        "prefix": ".step",
+        "body": ".step ${1:param} ${2|list,oct,dec,lin|} ${3:start} ${4:stop} ${5:incr}",
+        "description": ".STEP param type start stop incr"
+    },
+    "Step List": {
+        "prefix": ".steplist",
+        "body": ".step ${1:param} list ${2:val1} ${3:val2} ${4:val3}",
+        "description": ".STEP param list val1 val2 val3"
+    },
+
+    "Measure Rise/Fall/Delay": {
+        "prefix": ".meas",
+        "body": [
+            ".measure ${1|dc,ac,tran|} ${2:result} TRIG ${3:v(${4:node})} VAL=${5:val} ${6|RISE,FALL,CROSS|}=${7:1} TARG ${8:v(${9:node})} VAL=${10:val} ${11|RISE,FALL,CROSS|}=${12:1}"
+        ],
+        "description": "Measure Rise/Fall/Delay"
+    },
+    "Measure When": {
+        "prefix": ".measwhen",
+        "body": [
+            ".measure ${1|dc,ac,tran|} ${2:result} WHEN ${3:v(${4:node})}=${5:val}"
+        ],
+        "description": "Measure When"
+    },
+    "Measure Find": {
+        "prefix": ".measfind",
+        "body": [
+            ".measure ${1|dc,ac,tran|} ${2:result} FIND ${3:v(${4:node})} AT=${5:val}"
+        ],
+        "description": "Measure Find"
+    },
+    "Measure Average": {
+        "prefix": ".measavg",
+        "body": [
+            ".measure ${1|dc,ac,tran|} ${2:result} AVG ${3:v(${4:node})} FROM=${5:tstart} TO=${6:tstop}"
+        ],
+        "description": "Measure Average"
+    },
+    "Measure RMS": {
+        "prefix": ".measrms",
+        "body": [
+            ".measure ${1|dc,ac,tran|} ${2:result} RMS ${3:v(${4:node})} FROM=${5:tstart} TO=${6:tstop}"
+        ],
+        "description": "Measure RMS"
+    },
+    "Measure PP": {
+        "prefix": ".measpp",
+        "body": [
+            ".measure ${1|dc,ac,tran|} ${2:result} PP ${3:v(${4:node})} FROM=${5:tstart} TO=${6:tstop}"
+        ],
+        "description": "Measure Peak-to-Peak"
+    },
+    "Measure Min": {
+        "prefix": ".measmin",
+        "body": [
+            ".measure ${1|dc,ac,tran|} ${2:result} MIN ${3:v(${4:node})} FROM=${5:tstart} TO=${6:tstop}"
+        ],
+        "description": "Measure Minimum"
+    },
+    "Measure Max": {
+        "prefix": ".measmax",
+        "body": [
+            ".measure ${1|dc,ac,tran|} ${2:result} MAX ${3:v(${4:node})} FROM=${5:tstart} TO=${6:tstop}"
+        ],
+        "description": "Measure Maximum"
+    },
+
+    "Save": {
+        "prefix": ".save",
+        "body": ".save ${1:v(${2:node})}",
+        "description": "Save signal"
+    },
+    "Print": {
+        "prefix": ".print",
+        "body": ".print ${1|dc,ac,tran,op|} ${2:v(${3:node})}",
+        "description": "Print output"
+    },
+    "Plot": {
+        "prefix": ".plot",
+        "body": ".plot ${1|dc,ac,tran,op|} ${2:v(${3:node})}",
+        "description": "Plot output"
+    },
+    "Probe": {
+        "prefix": ".probe",
+        "body": ".probe ${1|dc,ac,tran,op|} ${2:v(${3:node})}",
+        "description": "Probe output"
+    },
+
+    "Connect": {
+        "prefix": ".conn",
+        "body": ".connect ${1:node1} ${2:node2}",
+        "description": "Connect nodes"
+    },
+    "Alter": {
+        "prefix": ".alter",
+        "body": ".alter",
+        "description": "Alter block"
+    },
+    "Statistics": {
+        "prefix": ".stat",
+        "body": ".statistics\n\t${1}\n.endstatistics",
+        "description": "Statistics block"
+    },
+
+    "Resistor": {
+        "prefix": "R",
+        "body": "R${1:name} ${2:node1} ${3:node2} ${4:value}",
+        "description": "Resistor"
+    },
+    "Capacitor": {
+        "prefix": "C",
+        "body": "C${1:name} ${2:node1} ${3:node2} ${4:value}",
+        "description": "Capacitor"
+    },
+    "Inductor": {
+        "prefix": "L",
+        "body": "L${1:name} ${2:node1} ${3:node2} ${4:value}",
+        "description": "Inductor"
+    },
+    "Diode": {
+        "prefix": "D",
+        "body": "D${1:name} ${2:anode} ${3:cathode} ${4:model}",
+        "description": "Diode"
+    },
+    "BJT": {
+        "prefix": "Q",
+        "body": "Q${1:name} ${2:collector} ${3:base} ${4:emitter} ${5:model}",
+        "description": "BJT Transistor"
+    },
+    "MOSFET": {
+        "prefix": "M",
+        "body": "M${1:name} ${2:drain} ${3:gate} ${4:source} ${5:bulk} ${6:model} W=${7:width} L=${8:length}",
+        "description": "MOSFET"
+    },
+    "JFET": {
+        "prefix": "J",
+        "body": "J${1:name} ${2:drain} ${3:gate} ${4:source} ${5:model}",
+        "description": "JFET"
+    },
+    "Subcircuit Instance": {
+        "prefix": "X",
+        "body": "X${1:name} ${2:pins} ${3:subckt_name}",
+        "description": "Subcircuit instance"
+    },
+    "Voltage Source DC": {
+        "prefix": "Vdc",
+        "body": "V${1:name} ${2:node+} ${3:node-} DC ${4:value}",
+        "description": "DC Voltage Source"
+    },
+    "Voltage Source AC": {
+        "prefix": "Vac",
+        "body": "V${1:name} ${2:node+} ${3:node-} AC ${4:mag} ${5:phase}",
+        "description": "AC Voltage Source"
+    },
+    "Current Source DC": {
+        "prefix": "Idc",
+        "body": "I${1:name} ${2:node+} ${3:node-} DC ${4:value}",
+        "description": "DC Current Source"
+    },
+    "Voltage Source Pulse": {
+        "prefix": "Vpulse",
+        "body": "V${1:name} ${2:node+} ${3:node-} PULSE(${4:v1} ${5:v2} ${6:delay} ${7:rise} ${8:fall} ${9:pw} ${10:period})",
+        "description": "Pulse Voltage Source"
+    },
+    "Voltage Source Sin": {
+        "prefix": "Vsin",
+        "body": "V${1:name} ${2:node+} ${3:node-} SIN(${4:offset} ${5:amp} ${6:freq})",
+        "description": "Sinusoidal Voltage Source"
+    },
+    "Transmission Line": {
+        "prefix": "T",
+        "body": "T${1:name} ${2:node1+} ${3:node1-} ${4:node2+} ${5:node2-} Z0=${6:impedance} TD=${7:delay}",
+        "description": "Transmission Line"
+    },
+    "Switch": {
+        "prefix": "S",
+        "body": "S${1:name} ${2:node1+} ${3:node1-} ${4:node2+} ${5:node2-} ${6:model}",
+        "description": "Voltage Controlled Switch"
+    },
+    "VCVS": {
+        "prefix": "E",
+        "body": "E${1:name} ${2:node+} ${3:node-} ${4:ctrl+} ${5:ctrl-} ${6:gain}",
+        "description": "Voltage Controlled Voltage Source"
+    },
+    "VCCS": {
+        "prefix": "G",
+        "body": "G${1:name} ${2:node+} ${3:node-} ${4:ctrl+} ${5:ctrl-} ${6:transconductance}",
+        "description": "Voltage Controlled Current Source"
+    },
+    "CCCS": {
+        "prefix": "F",
+        "body": "F${1:name} ${2:node+} ${3:node-} ${4:vsource} ${5:gain}",
+        "description": "Current Controlled Current Source"
+    },
+    "CCVS": {
+        "prefix": "H",
+        "body": "H${1:name} ${2:node+} ${3:node-} ${4:vsource} ${5:transresistance}",
+        "description": "Current Controlled Voltage Source"
+    },
+
+    "Transient Template": {
+        "prefix": "tranfull",
+        "body": [
+            "* ${1:Transient Analysis}",
+            ".param ${2:param} = ${3:value}",
+            "",
+            "* Circuit",
+            "${4:* Circuit elements here}",
+            "",
+            "* Analysis",
+            ".tran ${5:1n} ${6:1u}",
+            "",
+            "* Output",
+            ".plot tran ${7:v(out)}",
+            "",
+            ".end"
+        ],
+        "description": "Full transient analysis template"
+    },
+    "AC Template": {
+        "prefix": "acfull",
+        "body": [
+            "* ${1:AC Analysis}",
+            ".param ${2:param} = ${3:value}",
+            "",
+            "* Circuit",
+            "${4:* Circuit elements here}",
+            "",
+            "* Analysis",
+            ".ac dec ${5:100} ${6:1} ${7:1G}",
+            "",
+            "* Output",
+            ".plot ac ${8:db(v(out))} ${9:vp(out)}",
+            "",
+            ".end"
+        ],
+        "description": "Full AC analysis template"
+    },
+    "DC Template": {
+        "prefix": "dcfull",
+        "body": [
+            "* ${1:DC Analysis}",
+            ".param ${2:param} = ${3:value}",
+            "",
+            "* Circuit",
+            "${4:* Circuit elements here}",
+            "",
+            "* Analysis",
+            ".dc ${5:v1} ${6:0} ${7:5} ${8:0.01}",
+            "",
+            "* Output",
+            ".plot dc ${9:v(out)}",
+            "",
+            ".end"
+        ],
+        "description": "Full DC analysis template"
     }
 }

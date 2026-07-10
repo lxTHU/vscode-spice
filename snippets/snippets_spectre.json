@@ -1,0 +1,202 @@
+{
+    "Spectre Subcircuit": {
+        "prefix": "subckt",
+        "body": "subckt ${1:name} (${2:pins})\n\t${3:body}\nends $1",
+        "description": "Spectre subcircuit definition"
+    },
+    "Spectre Parameters": {
+        "prefix": "parameters",
+        "body": "parameters ${1:name}=${2:value}",
+        "description": "Spectre parameters"
+    },
+    "Spectre Simulator": {
+        "prefix": "simulator",
+        "body": "simulator lang=${1|spectre,hspice,spice|}",
+        "description": "Spectre simulator language"
+    },
+    "Spectre Analysis AC": {
+        "prefix": "ac",
+        "body": "${1:ac1} ac freq=${2:start} to ${3:stop}",
+        "description": "Spectre AC analysis"
+    },
+    "Spectre Analysis DC": {
+        "prefix": "dc",
+        "body": "${1:dc1} dc dev=${2:source} param=${3:vdc} start=${4:0} stop=${5:5} step=${6:0.1}",
+        "description": "Spectre DC analysis"
+    },
+    "Spectre Analysis Transient": {
+        "prefix": "tran",
+        "body": "${1:tran1} tran stop=${2:1u}",
+        "description": "Spectre transient analysis"
+    },
+    "Spectre Analysis Noise": {
+        "prefix": "noise",
+        "body": "${1:noise1} noise probe=${2:v(out)} input=${3:source} freq=${4:start} to ${5:stop}",
+        "description": "Spectre noise analysis"
+    },
+    "Spectre Analysis STB": {
+        "prefix": "stb",
+        "body": "${1:stb1} stb probe=${2:v(out)}",
+        "description": "Spectre stability analysis"
+    },
+    "Spectre Analysis PSS": {
+        "prefix": "pss",
+        "body": "${1:pss1} pss fund=${2:fund} tstab=${3:10u} errpreset=${4|conservative,moderate,liberal|}",
+        "description": "Spectre PSS analysis"
+    },
+    "Spectre Analysis PAC": {
+        "prefix": "pac",
+        "body": "${1:pac1} pac start=${2:start} stop=${3:stop}",
+        "description": "Spectre PAC analysis"
+    },
+    "Spectre Analysis PNOISE": {
+        "prefix": "pnoise",
+        "body": "${1:pnoise1} pnoise start=${2:start} stop=${3:stop}",
+        "description": "Spectre PNOISE analysis"
+    },
+    "Spectre Include": {
+        "prefix": "include",
+        "body": "include \"${1:filename}\"",
+        "description": "Spectre include file"
+    },
+    "Spectre Global": {
+        "prefix": "global",
+        "body": "global ${1:node}",
+        "description": "Spectre global node"
+    },
+    "Spectre Save": {
+        "prefix": "save",
+        "body": "save ${1:signal}",
+        "description": "Spectre save signal"
+    },
+    "Spectre Options": {
+        "prefix": "options",
+        "body": "options ${1:option}=${2:value}",
+        "description": "Spectre options"
+    },
+    "Spectre Info": {
+        "prefix": "info",
+        "body": "info what=${1|version,license,release|}",
+        "description": "Spectre info"
+    },
+    "Spectre Design": {
+        "prefix": "design",
+        "body": "design \"${1:cellview}\"",
+        "description": "Spectre design"
+    },
+    "Spectre Resistor": {
+        "prefix": "resistor",
+        "body": "${1:r1} resistor (${2:node1} ${3:node2}) r=${4:1k}",
+        "description": "Spectre resistor"
+    },
+    "Spectre Capacitor": {
+        "prefix": "capacitor",
+        "body": "${1:c1} capacitor (${2:node1} ${3:node2}) c=${4:1p}",
+        "description": "Spectre capacitor"
+    },
+    "Spectre Inductor": {
+        "prefix": "inductor",
+        "body": "${1:l1} inductor (${2:node1} ${3:node2}) l=${4:1n}",
+        "description": "Spectre inductor"
+    },
+    "Spectre Diode": {
+        "prefix": "diode",
+        "body": "${1:d1} diode (${2:anode} ${3:cathode}) model=${4:model}",
+        "description": "Spectre diode"
+    },
+    "Spectre MOSFET": {
+        "prefix": "mosfet",
+        "body": "${1:m1} mosfet (${2:drain} ${3:gate} ${4:source} ${5:bulk}) model=${6:model} w=${7:1u} l=${8:1u}",
+        "description": "Spectre MOSFET"
+    },
+    "Spectre BJT": {
+        "prefix": "bipolar",
+        "body": "${1:q1} bipolar (${2:collector} ${3:base} ${4:emitter}) model=${5:model}",
+        "description": "Spectre BJT"
+    },
+    "Spectre JFET": {
+        "prefix": "jfet",
+        "body": "${1:j1} jfet (${2:drain} ${3:gate} ${4:source}) model=${5:model}",
+        "description": "Spectre JFET"
+    },
+    "Spectre Vsource": {
+        "prefix": "vsource",
+        "body": "${1:v1} vsource (${2:node+} ${3:node-}) type=${4|dc,ac,pulse,sine|} ${5:value}",
+        "description": "Spectre voltage source"
+    },
+    "Spectre Isource": {
+        "prefix": "isource",
+        "body": "${1:i1} isource (${2:node+} ${3:node-}) type=${4|dc,ac,pulse,sine|} ${5:value}",
+        "description": "Spectre current source"
+    },
+    "Spectre VCVS": {
+        "prefix": "vcvs",
+        "body": "${1:e1} vcvs (${2:node+} ${3:node-} ${4:ctrl+} ${5:ctrl-}) gain=${6:1}",
+        "description": "Spectre VCVS"
+    },
+    "Spectre VCCS": {
+        "prefix": "vccs",
+        "body": "${1:g1} vccs (${2:node+} ${3:node-} ${4:ctrl+} ${5:ctrl-}) gm=${6:1m}",
+        "description": "Spectre VCCS"
+    },
+    "Spectre CCVS": {
+        "prefix": "ccvs",
+        "body": "${1:h1} ccvs (${2:node+} ${3:node-} ${4:vname}) gain=${5:1}",
+        "description": "Spectre CCVS"
+    },
+    "Spectre CCCS": {
+        "prefix": "cccs",
+        "body": "${1:f1} cccs (${2:node+} ${3:node-} ${4:vname}) gain=${5:1}",
+        "description": "Spectre CCCS"
+    },
+    "Spectre Tline": {
+        "prefix": "tline",
+        "body": "${1:t1} tline (${2:node1+} ${3:node1-} ${4:node2+} ${5:node2-}) z0=${6:50} td=${7:1n}",
+        "description": "Spectre transmission line"
+    },
+    "Spectre Switch": {
+        "prefix": "switch",
+        "body": "${1:s1} switch (${2:node1+} ${3:node1-} ${4:node2+} ${5:node2-}) model=${6:model}",
+        "description": "Spectre switch"
+    },
+    "Spectre Model": {
+        "prefix": "model",
+        "body": "model ${1:name} ${2:type} (${3:parameters})",
+        "description": "Spectre model"
+    },
+    "Spectre Assert": {
+        "prefix": "assert",
+        "body": "assert ${1:condition}",
+        "description": "Spectre assert"
+    },
+    "Spectre Statistics": {
+        "prefix": "statistics",
+        "body": "statistics {\n\t${1}\n}",
+        "description": "Spectre statistics block"
+    },
+    "Spectre Process": {
+        "prefix": "process",
+        "body": "process {\n\t${1}\n}",
+        "description": "Spectre process block"
+    },
+    "Spectre Section": {
+        "prefix": "section",
+        "body": "section ${1:name}\n\t${2}\nendsection $1",
+        "description": "Spectre section block"
+    },
+    "Spectre If": {
+        "prefix": "if",
+        "body": "if (${1:condition})\n\t${2}\nendif",
+        "description": "Spectre if block"
+    },
+    "Spectre If/Else": {
+        "prefix": "ifelse",
+        "body": "if (${1:condition})\n\t${2}\nelse\n\t${3}\nendif",
+        "description": "Spectre if/else block"
+    },
+    "Spectre End": {
+        "prefix": "end",
+        "body": "end",
+        "description": "Spectre end"
+    }
+}
