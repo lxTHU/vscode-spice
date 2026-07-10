@@ -83,7 +83,7 @@
 			<key>comment</key>
 			<string>Subcircuit definition</string>
 			<key>match</key>
-			<string>^[\s]*\.(?:subckt|ends)[\s]+([\w]+)</string>
+			<string>(?i)^[\s]*\.(?:subckt|ends)(?:[\s]+([\w]+))?</string>
 			<key>name</key>
 			<string>keyword.control.subckt.spice</string>
 		</dict>
@@ -91,7 +91,7 @@
 			<key>comment</key>
 			<string>Library block</string>
 			<key>match</key>
-			<string>^[\s]*\.(?:lib|endl)[\s]*</string>
+			<string>(?i)^[\s]*\.(?:lib|endl)[\s]*</string>
 			<key>name</key>
 			<string>keyword.control.lib.spice</string>
 		</dict>
@@ -99,7 +99,7 @@
 			<key>comment</key>
 			<string>Control block</string>
 			<key>match</key>
-			<string>^[\s]*\.(?:control|endc)[\s]*</string>
+			<string>(?i)^[\s]*\.(?:control|endc)[\s]*</string>
 			<key>name</key>
 			<string>keyword.control.block.spice</string>
 		</dict>
@@ -107,7 +107,7 @@
 			<key>comment</key>
 			<string>If/Else/Endif block</string>
 			<key>match</key>
-			<string>^[\s]*\.(?:if|elseif|else|endif)[\s]*</string>
+			<string>(?i)^[\s]*\.(?:if|elseif|else|endif)[\s]*</string>
 			<key>name</key>
 			<string>keyword.control.conditional.spice</string>
 		</dict>
@@ -117,7 +117,7 @@
 			<key>comment</key>
 			<string>Spectre subcircuit definition</string>
 			<key>match</key>
-			<string>^\s*(?:subckt|ends)\b</string>
+			<string>(?i)^\s*(?:subckt|ends)\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.subckt.spice</string>
 		</dict>
@@ -125,7 +125,7 @@
 			<key>comment</key>
 			<string>Spectre parameters</string>
 			<key>match</key>
-			<string>^\s*parameters?\b</string>
+			<string>(?i)^\s*parameters?\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.param.spice</string>
 		</dict>
@@ -133,7 +133,7 @@
 			<key>comment</key>
 			<string>Spectre simulator</string>
 			<key>match</key>
-			<string>^\s*simulator\b</string>
+			<string>(?i)^\s*simulator\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.simulator.spice</string>
 		</dict>
@@ -141,7 +141,7 @@
 			<key>comment</key>
 			<string>Spectre analysis</string>
 			<key>match</key>
-			<string>^\s*analysis\b</string>
+			<string>(?i)^\s*analysis\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.analysis.spice</string>
 		</dict>
@@ -149,7 +149,7 @@
 			<key>comment</key>
 			<string>Spectre design</string>
 			<key>match</key>
-			<string>^\s*design\b</string>
+			<string>(?i)^\s*design\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.design.spice</string>
 		</dict>
@@ -157,7 +157,7 @@
 			<key>comment</key>
 			<string>Spectre model</string>
 			<key>match</key>
-			<string>^\s*model\b</string>
+			<string>(?i)^\s*model\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.model.spice</string>
 		</dict>
@@ -165,7 +165,7 @@
 			<key>comment</key>
 			<string>Spectre instance</string>
 			<key>match</key>
-			<string>^\s*instance\b</string>
+			<string>(?i)^\s*instance\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.instance.spice</string>
 		</dict>
@@ -173,7 +173,7 @@
 			<key>comment</key>
 			<string>Spectre global</string>
 			<key>match</key>
-			<string>^\s*global\b</string>
+			<string>(?i)^\s*global\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.global.spice</string>
 		</dict>
@@ -181,7 +181,7 @@
 			<key>comment</key>
 			<string>Spectre include</string>
 			<key>match</key>
-			<string>^\s*include\b</string>
+			<string>(?i)^\s*include\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.include.spice</string>
 		</dict>
@@ -189,7 +189,7 @@
 			<key>comment</key>
 			<string>Spectre info</string>
 			<key>match</key>
-			<string>^\s*info\b</string>
+			<string>(?i)^\s*info\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.info.spice</string>
 		</dict>
@@ -197,7 +197,7 @@
 			<key>comment</key>
 			<string>Spectre save</string>
 			<key>match</key>
-			<string>^\s*save\b</string>
+			<string>(?i)^\s*save\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.save.spice</string>
 		</dict>
@@ -205,7 +205,7 @@
 			<key>comment</key>
 			<string>Spectre plot</string>
 			<key>match</key>
-			<string>^\s*plot\b</string>
+			<string>(?i)^\s*plot\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.plot.spice</string>
 		</dict>
@@ -213,7 +213,7 @@
 			<key>comment</key>
 			<string>Spectre print</string>
 			<key>match</key>
-			<string>^\s*print\b</string>
+			<string>(?i)^\s*print\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.print.spice</string>
 		</dict>
@@ -221,7 +221,7 @@
 			<key>comment</key>
 			<string>Spectre assert</string>
 			<key>match</key>
-			<string>^\s*assert\b</string>
+			<string>(?i)^\s*assert\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.assert.spice</string>
 		</dict>
@@ -229,7 +229,7 @@
 			<key>comment</key>
 			<string>Spectre alter</string>
 			<key>match</key>
-			<string>^\s*alter\b</string>
+			<string>(?i)^\s*alter\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.alter.spice</string>
 		</dict>
@@ -237,7 +237,7 @@
 			<key>comment</key>
 			<string>Spectre statistics</string>
 			<key>match</key>
-			<string>^\s*(?:statistics|process|section|endsection)\b</string>
+			<string>(?i)^\s*(?:statistics|process|section|endsection)\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.stats.spice</string>
 		</dict>
@@ -245,7 +245,7 @@
 			<key>comment</key>
 			<string>Spectre connect</string>
 			<key>match</key>
-			<string>^\s*connect\b</string>
+			<string>(?i)^\s*connect\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.connect.spice</string>
 		</dict>
@@ -253,7 +253,7 @@
 			<key>comment</key>
 			<string>Spectre options</string>
 			<key>match</key>
-			<string>^\s*options\b</string>
+			<string>(?i)^\s*options\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.options.spice</string>
 		</dict>
@@ -261,7 +261,7 @@
 			<key>comment</key>
 			<string>Spectre temp</string>
 			<key>match</key>
-			<string>^\s*temp\b</string>
+			<string>(?i)^\s*temp\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.temp.spice</string>
 		</dict>
@@ -269,7 +269,7 @@
 			<key>comment</key>
 			<string>Spectre lib</string>
 			<key>match</key>
-			<string>^\s*lib\b</string>
+			<string>(?i)^\s*lib\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.lib.spice</string>
 		</dict>
@@ -277,7 +277,7 @@
 			<key>comment</key>
 			<string>Spectre if/else/endif</string>
 			<key>match</key>
-			<string>^\s*(?:if|elseif|else|endif)\b</string>
+			<string>(?i)^\s*(?:if|elseif|else|endif)\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.conditional.spice</string>
 		</dict>
@@ -285,7 +285,7 @@
 			<key>comment</key>
 			<string>Spectre control/endc</string>
 			<key>match</key>
-			<string>^\s*(?:control|endc)\b</string>
+			<string>(?i)^\s*(?:control|endc)\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.block.spice</string>
 		</dict>
@@ -293,7 +293,7 @@
 			<key>comment</key>
 			<string>Spectre end</string>
 			<key>match</key>
-			<string>^\s*end\b</string>
+			<string>(?i)^\s*end\b</string>
 			<key>name</key>
 			<string>keyword.control.spectre.end.spice</string>
 		</dict>
@@ -303,7 +303,7 @@
 			<key>comment</key>
 			<string>Spectre AC analysis</string>
 			<key>match</key>
-			<string>^\s*ac\s*\w*\s*\b</string>
+			<string>(?i)^\s*ac\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.ac.spice</string>
 		</dict>
@@ -311,7 +311,7 @@
 			<key>comment</key>
 			<string>Spectre DC analysis</string>
 			<key>match</key>
-			<string>^\s*dc\s*\w*\s*\b</string>
+			<string>(?i)^\s*dc\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.dc.spice</string>
 		</dict>
@@ -319,7 +319,7 @@
 			<key>comment</key>
 			<string>Spectre transient analysis</string>
 			<key>match</key>
-			<string>^\s*tran\s*\w*\s*\b</string>
+			<string>(?i)^\s*tran\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.tran.spice</string>
 		</dict>
@@ -327,7 +327,7 @@
 			<key>comment</key>
 			<string>Spectre noise analysis</string>
 			<key>match</key>
-			<string>^\s*noise\s*\w*\s*\b</string>
+			<string>(?i)^\s*noise\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.noise.spice</string>
 		</dict>
@@ -335,7 +335,7 @@
 			<key>comment</key>
 			<string>Spectre stb analysis</string>
 			<key>match</key>
-			<string>^\s*stb\s*\w*\s*\b</string>
+			<string>(?i)^\s*stb\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.stb.spice</string>
 		</dict>
@@ -343,7 +343,7 @@
 			<key>comment</key>
 			<string>Spectre pss analysis</string>
 			<key>match</key>
-			<string>^\s*pss\s*\w*\s*\b</string>
+			<string>(?i)^\s*pss\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.pss.spice</string>
 		</dict>
@@ -351,7 +351,7 @@
 			<key>comment</key>
 			<string>Spectre pac analysis</string>
 			<key>match</key>
-			<string>^\s*pac\s*\w*\s*\b</string>
+			<string>(?i)^\s*pac\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.pac.spice</string>
 		</dict>
@@ -359,7 +359,7 @@
 			<key>comment</key>
 			<string>Spectre pnoise analysis</string>
 			<key>match</key>
-			<string>^\s*pnoise\s*\w*\s*\b</string>
+			<string>(?i)^\s*pnoise\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.pnoise.spice</string>
 		</dict>
@@ -367,7 +367,7 @@
 			<key>comment</key>
 			<string>Spectre xf analysis</string>
 			<key>match</key>
-			<string>^\s*xf\s*\w*\s*\b</string>
+			<string>(?i)^\s*xf\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.xf.spice</string>
 		</dict>
@@ -375,7 +375,7 @@
 			<key>comment</key>
 			<string>Spectre dcmatch analysis</string>
 			<key>match</key>
-			<string>^\s*dcmatch\s*\w*\s*\b</string>
+			<string>(?i)^\s*dcmatch\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.dcmatch.spice</string>
 		</dict>
@@ -383,7 +383,7 @@
 			<key>comment</key>
 			<string>Spectre acmatch analysis</string>
 			<key>match</key>
-			<string>^\s*acmatch\s*\w*\s*\b</string>
+			<string>(?i)^\s*acmatch\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.acmatch.spice</string>
 		</dict>
@@ -391,7 +391,7 @@
 			<key>comment</key>
 			<string>Spectre sens analysis</string>
 			<key>match</key>
-			<string>^\s*sens\s*\w*\s*\b</string>
+			<string>(?i)^\s*sens\s*\w*\s*\b</string>
 			<key>name</key>
 			<string>keyword.other.spectre.sens.spice</string>
 		</dict>
@@ -523,7 +523,7 @@
 			<key>comment</key>
 			<string>AC analysis command</string>
 			<key>match</key>
-			<string>^[\s]*\.ac[\s]+</string>
+			<string>(?i)^[\s]*\.ac[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.ac.spice</string>
 		</dict>
@@ -531,7 +531,7 @@
 			<key>comment</key>
 			<string>DC analysis command</string>
 			<key>match</key>
-			<string>^[\s]*\.dc[\s]+</string>
+			<string>(?i)^[\s]*\.dc[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.dc.spice</string>
 		</dict>
@@ -539,7 +539,7 @@
 			<key>comment</key>
 			<string>Transient analysis command</string>
 			<key>match</key>
-			<string>^[\s]*\.tran[\s]+</string>
+			<string>(?i)^[\s]*\.tran[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.tran.spice</string>
 		</dict>
@@ -547,7 +547,7 @@
 			<key>comment</key>
 			<string>Operating point command</string>
 			<key>match</key>
-			<string>^[\s]*\.op[\s]*</string>
+			<string>(?i)^[\s]*\.op[\s]*</string>
 			<key>name</key>
 			<string>keyword.other.op.spice</string>
 		</dict>
@@ -555,7 +555,7 @@
 			<key>comment</key>
 			<string>Noise analysis command</string>
 			<key>match</key>
-			<string>^[\s]*\.noise[\s]+</string>
+			<string>(?i)^[\s]*\.noise[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.noise.spice</string>
 		</dict>
@@ -563,7 +563,7 @@
 			<key>comment</key>
 			<string>Transfer function command</string>
 			<key>match</key>
-			<string>^[\s]*\.tf[\s]+</string>
+			<string>(?i)^[\s]*\.tf[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.tf.spice</string>
 		</dict>
@@ -571,7 +571,7 @@
 			<key>comment</key>
 			<string>Distortion analysis command</string>
 			<key>match</key>
-			<string>^[\s]*\.disto[\s]*</string>
+			<string>(?i)^[\s]*\.disto[\s]*</string>
 			<key>name</key>
 			<string>keyword.other.disto.spice</string>
 		</dict>
@@ -579,7 +579,7 @@
 			<key>comment</key>
 			<string>Fourier analysis command</string>
 			<key>match</key>
-			<string>^[\s]*\.four[\s]+</string>
+			<string>(?i)^[\s]*\.four[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.four.spice</string>
 		</dict>
@@ -589,7 +589,7 @@
 			<key>comment</key>
 			<string>Include command</string>
 			<key>match</key>
-			<string>^[\s]*\.(?:include|inc)[\s]+(.*)$</string>
+			<string>(?i)^[\s]*\.(?:include|inc)[\s]+(.*)$</string>
 			<key>name</key>
 			<string>keyword.other.include.spice</string>
 		</dict>
@@ -597,7 +597,7 @@
 			<key>comment</key>
 			<string>Model command</string>
 			<key>match</key>
-			<string>^[\s]*\.model[\s]+</string>
+			<string>(?i)^[\s]*\.model[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.model.spice</string>
 		</dict>
@@ -605,7 +605,7 @@
 			<key>comment</key>
 			<string>Parameter definition</string>
 			<key>match</key>
-			<string>^[\s]*\.param[\s]+</string>
+			<string>(?i)^[\s]*\.param[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.param.spice</string>
 		</dict>
@@ -613,7 +613,7 @@
 			<key>comment</key>
 			<string>Global node</string>
 			<key>match</key>
-			<string>^[\s]*\.global[\s]+</string>
+			<string>(?i)^[\s]*\.global[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.global.spice</string>
 		</dict>
@@ -621,7 +621,7 @@
 			<key>comment</key>
 			<string>Options command</string>
 			<key>match</key>
-			<string>^[\s]*\.options?[\s]+</string>
+			<string>(?i)^[\s]*\.options?[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.options.spice</string>
 		</dict>
@@ -629,7 +629,7 @@
 			<key>comment</key>
 			<string>Temperature command</string>
 			<key>match</key>
-			<string>^[\s]*\.temp[\s]+</string>
+			<string>(?i)^[\s]*\.temp[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.temp.spice</string>
 		</dict>
@@ -637,7 +637,7 @@
 			<key>comment</key>
 			<string>Step command</string>
 			<key>match</key>
-			<string>^[\s]*\.step[\s]+</string>
+			<string>(?i)^[\s]*\.step[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.step.spice</string>
 		</dict>
@@ -645,7 +645,7 @@
 			<key>comment</key>
 			<string>Nodeset command</string>
 			<key>match</key>
-			<string>^[\s]*\.nodeset[\s]+</string>
+			<string>(?i)^[\s]*\.nodeset[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.nodeset.spice</string>
 		</dict>
@@ -653,7 +653,7 @@
 			<key>comment</key>
 			<string>Initial condition command</string>
 			<key>match</key>
-			<string>^[\s]*\.ic[\s]+</string>
+			<string>(?i)^[\s]*\.ic[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.ic.spice</string>
 		</dict>
@@ -661,7 +661,7 @@
 			<key>comment</key>
 			<string>Function definition</string>
 			<key>match</key>
-			<string>^[\s]*\.func[\s]+</string>
+			<string>(?i)^[\s]*\.func[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.func.spice</string>
 		</dict>
@@ -669,7 +669,7 @@
 			<key>comment</key>
 			<string>Measure command</string>
 			<key>match</key>
-			<string>^[\s]*\.meas(?:ure)?[\s]+</string>
+			<string>(?i)^[\s]*\.meas(?:ure)?[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.meas.spice</string>
 		</dict>
@@ -677,7 +677,7 @@
 			<key>comment</key>
 			<string>Save command</string>
 			<key>match</key>
-			<string>^[\s]*\.save[\s]+</string>
+			<string>(?i)^[\s]*\.save[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.save.spice</string>
 		</dict>
@@ -685,7 +685,7 @@
 			<key>comment</key>
 			<string>Probe/Print/Plot commands</string>
 			<key>match</key>
-			<string>^[\s]*\.(?:probe|print|plot)[\s]+</string>
+			<string>(?i)^[\s]*\.(?:probe|print|plot)[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.output.spice</string>
 		</dict>
@@ -693,7 +693,7 @@
 			<key>comment</key>
 			<string>Connect command</string>
 			<key>match</key>
-			<string>^[\s]*\.connect[\s]+</string>
+			<string>(?i)^[\s]*\.connect[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.connect.spice</string>
 		</dict>
@@ -701,7 +701,7 @@
 			<key>comment</key>
 			<string>Statistics/Process commands</string>
 			<key>match</key>
-			<string>^[\s]*\.(?:statistics|process|section|endsection)[\s]*</string>
+			<string>(?i)^[\s]*\.(?:statistics|process|section|endsection)[\s]*</string>
 			<key>name</key>
 			<string>keyword.other.stats.spice</string>
 		</dict>
@@ -709,7 +709,7 @@
 			<key>comment</key>
 			<string>Alter command</string>
 			<key>match</key>
-			<string>^[\s]*\.alter[\s]*</string>
+			<string>(?i)^[\s]*\.alter[\s]*</string>
 			<key>name</key>
 			<string>keyword.other.alter.spice</string>
 		</dict>
@@ -717,15 +717,23 @@
 			<key>comment</key>
 			<string>Data directive</string>
 			<key>match</key>
-			<string>^[\s]*\.data[\s]+</string>
+			<string>(?i)^[\s]*\.data[\s]+</string>
 			<key>name</key>
 			<string>keyword.other.data.spice</string>
 		</dict>
 		<dict>
 			<key>comment</key>
+			<string>Data block end</string>
+			<key>match</key>
+			<string>(?i)^[\s]*\.enddata\b</string>
+			<key>name</key>
+			<string>keyword.control.enddata.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
 			<string>End command</string>
 			<key>match</key>
-			<string>^[\s]*\.end[\s]*$</string>
+			<string>(?i)^[\s]*\.end[\s]*$</string>
 			<key>name</key>
 			<string>keyword.control.end.spice</string>
 		</dict>
@@ -933,7 +941,7 @@
 			<key>comment</key>
 			<string>Measure keywords</string>
 			<key>match</key>
-			<string>(?i:trig|targ|when|find|derivative|avg|min|max|rms|pp|base|cross|rise|fall|delay|param)</string>
+			<string>(?i)(?i:trig|targ|when|find|derivative|avg|min|max|rms|pp|base|cross|rise|fall|delay|param)</string>
 			<key>name</key>
 			<string>keyword.other.measure.spice</string>
 		</dict>
@@ -943,7 +951,7 @@
 			<key>comment</key>
 			<string>Comparison operators</string>
 			<key>match</key>
-			<string>(?:&lt;|&gt;|&lt;=|&gt;=|==|!=)</string>
+			<string>(?i)(?:&lt;|&gt;|&lt;=|&gt;=|==|!=)</string>
 			<key>name</key>
 			<string>keyword.operator.comparison.spice</string>
 		</dict>
@@ -951,7 +959,7 @@
 			<key>comment</key>
 			<string>Logical operators</string>
 			<key>match</key>
-			<string>(?:&amp;&amp;|\|\||&amp;|\|)</string>
+			<string>(?i)(?:&amp;&amp;|\|\||&amp;|\|)</string>
 			<key>name</key>
 			<string>keyword.operator.logical.spice</string>
 		</dict>
@@ -1033,7 +1041,7 @@
 			<key>comment</key>
 			<string>Parameter assignment with =</string>
 			<key>match</key>
-			<string>(?i:params?)\s*:</string>
+			<string>(?i)(?i:params?)\s*:</string>
 			<key>name</key>
 			<string>keyword.operator.param.spice</string>
 		</dict>
@@ -1043,7 +1051,7 @@
 			<key>comment</key>
 			<string>Sweep keywords</string>
 			<key>match</key>
-			<string>(?i:SWEEP|START|STOP|STEP|DATA)</string>
+			<string>(?i)(?i:SWEEP|START|STOP|STEP|DATA)</string>
 			<key>name</key>
 			<string>keyword.other.sweep.spice</string>
 		</dict>

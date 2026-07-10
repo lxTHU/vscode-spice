@@ -2,7 +2,7 @@
     "name": "spice",
     "displayName": "SPICE",
     "description": "SPICE language support",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "icon": "icon.jpg",
     "publisher": "xuanli",
     "homepage": "https://github.com/lxTHU/vscode-spice",
@@ -33,7 +33,7 @@
         "languages": [{
             "id": "spice",
             "aliases": ["SPICE", "spice"],
-            "extensions": [".ckt",".sp",".net",".cir",".scs",".mod",".mdl",".lib",".sub",".lis"],
+            "extensions": [".ckt",".sp",".net",".cir",".scs",".mod",".mdl",".lib",".sub",".lis",".dspf"],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{
