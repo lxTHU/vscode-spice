@@ -2,7 +2,7 @@
     "name": "spice",
     "displayName": "SPICE",
     "description": "SPICE language support",
-    "version": "0.1.0",
+    "version": "0.2.2",
     "icon": "icon.jpg",
     "publisher": "xuanli",
     "homepage": "https://github.com/lxTHU/vscode-spice",
@@ -33,12 +33,12 @@
         "languages": [{
             "id": "spice",
             "aliases": ["SPICE", "spice"],
-            "extensions": [".ckt",".sp",".net",".cir",".scs",".mod",".mdl",".lib",".sub"],
+            "extensions": [".ckt",".sp",".net",".cir",".scs",".mod",".mdl",".lib",".sub",".lis"],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{
             "language": "spice",
-            "scopeName": "source.sp",
+            "scopeName": "source.spice",
             "path": "./syntaxes/SPICE.tmLanguage"
         }],
         "snippets": [
@@ -53,6 +53,10 @@
             {
                 "language": "spice",
                 "path": "./snippets/snippets_sources.json"
+            },
+            {
+                "language": "spice",
+                "path": "./snippets/snippets_spectre.json"
             }
         ]
     }
