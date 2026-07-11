@@ -181,9 +181,12 @@ The `.lib` dual-syntax bug, `.param` support, `.LIB section` scope, and the
 multi-definition resolver are **original additions**; the upstream FileModel has
 no `.param`/section concept.
 
-## Performance
+## Performance & robustness
 
-Single-pass O(n) parsing. Even very large process libraries parse in well under
-a second, and the in-memory index stays modest (a few thousand symbols).
-Re-parse on edit is debounced (300 ms). Include-graph crawling is on-demand
-with mtime-cached disk reads.
+Single-pass O(n) parsing with bounded in-memory indexing. Re-parse on edit is debounced (300 ms).
+Include-graph crawling is on-demand with mtime-cached disk reads.
+
+Validation uses synthetic and redacted netlist corpora; dataset-specific identities and measurements are not published.
+
+MOSFET/BJT/diode model references inside `.subckt` bodies are navigable
+(`M`/`Q`/`D` indexed by default since 0.3.3).
