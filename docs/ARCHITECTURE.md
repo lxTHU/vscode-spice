@@ -181,9 +181,25 @@ The `.lib` dual-syntax bug, `.param` support, `.LIB section` scope, and the
 multi-definition resolver are **original additions**; the upstream FileModel has
 no `.param`/section concept.
 
-## Performance
+## Performance & robustness
 
-Single-pass O(n) parsing. Even very large process libraries parse in well under
-a second, and the in-memory index stays modest (a few thousand symbols).
-Re-parse on edit is debounced (300 ms). Include-graph crawling is on-demand
-with mtime-cached disk reads.
+Single-pass O(n) parsing. Even very large process libraries (hundreds of
+thousands of lines) parse in well under a second; the in-memory index stays
+modest (a few thousand symbols). Re-parse on edit is debounced (300 ms).
+Include-graph crawling is on-demand with mtime-cached disk reads.
+
+Validated across four structurally distinct real-world PDKs (vendor/process
+redacted):
+- **Single-file, self-referencing** (corner `.lib 'self' section`): thousands of
+  `.model`/`.param`, a few hundred `.LIB section` — `.lib` dual-syntax, `.param`
+  navigation, and section scope all correct.
+- **Multi-file split** (a `.lib` entry that fans out to ~25 separate
+  `.mdl`/`.ckt` files via `.include` + `.lib 'file' sec`): the include-graph
+  crawler indexes the full fan-out and cross-file F12 resolves correctly
+  (e.g. from the entry file to a model defined in an included module).
+- **Dual-voltage corner** PDKs (e.g. 1.8V/3.3V `tt`/`ff`/`ss` + voltage-suffix
+  variants): hundreds of params with multiple section definitions are indexed,
+  feeding the scope resolver.
+
+MOSFET/BJT/diode model references inside `.subckt` bodies are navigable
+(`M`/`Q`/`D` indexed by default since 0.3.3).
