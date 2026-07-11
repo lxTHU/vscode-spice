@@ -1,8 +1,8 @@
 {
     "name": "spice",
     "displayName": "SPICE",
-    "description": "SPICE language support",
-    "version": "0.2.3",
+    "description": "SPICE/HSPICE/Spectre language support: syntax highlighting, code folding, snippets, and IDE-style netlist navigation (Go-to-Definition, Hover, References, Outline, .param/.LIB section resolution).",
+    "version": "0.3.3",
     "icon": "icon.jpg",
     "publisher": "xuanli",
     "homepage": "https://github.com/lxTHU/vscode-spice",
@@ -16,16 +16,36 @@
     "license": "MIT",
 
     "engines": {
-        "vscode": "^1.15.0"
+        "vscode": "^1.60.0"
+    },
+    "main": "./out/extension.js",
+    "activationEvents": [
+        "onLanguage:spice"
+    ],
+    "scripts": {
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "vscode:prepublish": "npm run compile"
+    },
+    "devDependencies": {
+        "@types/node": "^18.0.0",
+        "@types/vscode": "^1.60.0",
+        "typescript": "^5.0.0"
     },
     "categories": [
-        "Programming Languages"
+        "Programming Languages",
+        "Snippets"
     ],
     "keywords": [
         "spice",
+        "hspice",
+        "spectre",
         "syntax",
         "highlighting",
+        "navigation",
         "circuit",
+        "netlist",
+        "pdk",
         "snippets"
     ],
 
@@ -33,7 +53,7 @@
         "languages": [{
             "id": "spice",
             "aliases": ["SPICE", "spice"],
-            "extensions": [".ckt",".sp",".net",".cir",".scs",".mod",".mdl",".lib",".sub",".lis",".dspf"],
+            "extensions": [".ckt",".sp",".net",".cir",".scs",".mod",".mdl",".lib",".sub",".lis",".dspf",".l"],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{
@@ -58,6 +78,32 @@
                 "language": "spice",
                 "path": "./snippets/snippets_spectre.json"
             }
-        ]
+        ],
+        "commands": [
+            {
+                "command": "spice.selectScope",
+                "title": "Select Active .LIB Section",
+                "category": "SPICE"
+            },
+            {
+                "command": "spice.clearScope",
+                "title": "Clear Manual Section Scope",
+                "category": "SPICE"
+            }
+        ],
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "spice.selectScope",
+                    "when": "editorLangId == spice",
+                    "group": "navigation@20"
+                },
+                {
+                    "command": "spice.clearScope",
+                    "when": "editorLangId == spice",
+                    "group": "navigation@21"
+                }
+            ]
+        }
     }
 }
