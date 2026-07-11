@@ -1,5 +1,11 @@
 # VS Code extension packaging — exclude everything not needed at runtime.
-# Keep: package.json, language-configuration.json, syntaxes/, snippets/, icon.jpg, README.md, CHANGELOG.md, LICENSE
+# Keep: package.json, language-configuration.json, syntaxes/, snippets/, icon.jpg, README.md, CHANGELOG.md, LICENSE, out/
+
+# Source & build config (compiled output in out/ IS shipped)
+src/
+tsconfig.json
+**/*.ts
+node_modules/
 
 # Test / dev artifacts
 test/
@@ -14,6 +20,8 @@ vsc-extension-quickstart.md
 
 # Docs (README/CHANGELOG/LICENSE are auto-included by vsce)
 docs/
+# Internal notes must never ship — vendor/PDK-specific, commercially sensitive
+docs/internal/
 
 # Build output
 *.vsix

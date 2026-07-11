@@ -8,6 +8,13 @@
 node_modules/
 package-lock.json
 yarn.lock
+# Compiled TypeScript output — rebuilt via `npm run compile` / `vscode:prepublish`
+out/
+
+# Internal notes — vendor/PDK-specific, commercially sensitive, never published.
+# Keep locally for reference; do NOT commit, package, or push.
+docs/internal/
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

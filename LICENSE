@@ -19,3 +19,25 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+--------------------------------------------------------------------------------
+
+Third-Party Notice
+==================
+
+This extension's netlist navigation engine (parser, symbol index, and language
+providers under `src/`) is derived from the HSPICE IntelliSense extension by
+Vladimir Aptekar:
+
+  Name:        HSPICE IntelliSense
+  Author:      Vladimir Aptekar
+  License:     MIT
+  Source:      https://marketplace.visualstudio.com/items?itemName=vladimir-aptekar.hspice-intellisense
+
+The original parser logic was ported and substantially simplified: Spectre
+branches, `simulator lang=` switching, the case-sensitivity toggle, and the
+language-server process model were removed; HSPICE-only navigation now runs
+in-process. `.LIB` dual-syntax handling, `.param` variable navigation, `.LIB
+section` scoping, and the multi-definition resolver are original additions not
+present in the upstream extension. See the file headers in `src/` for per-file
+attribution.

@@ -12,18 +12,45 @@
 ## See also
 [Seeing SPICE in VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=xuanli.spice)
 
+## Docs
+- [CHANGELOG.md](CHANGELOG.md) — release history
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — navigation engine design (`.lib` dual syntax, `.param`/section scope, capability comparison)
+- [docs/RELEASE.md](docs/RELEASE.md) — build, package, and publish guide
+- [docs/TODO.md](docs/TODO.md) — known limitations and backlog
+
 # Features
 
 ## Code Folding
-支持以下块结构的代码折叠：
+Folding is supported for the following block structures:
 - `.subckt` / `.ends`
-- `.lib` / `.endl`
+- `.lib` / `.endl` — only the section **definition** form `.lib NAME` … `.endl NAME` starts a fold; the file **reference** form `.lib 'file' NAME` does **not** start a fold block.
 - `.control` / `.endc`
 - `.if` / `.endif`
 - `.data` / `.enddata`
+- `.model` blocks (parameter list opened by `(` and closed by `)`)
 - `.statistics` / `.endstatistics`
 - `.section` / `.endsection`
 - Spectre: `subckt` / `ends`, `if` / `endif`, `statistics`, `process`, `section` / `endsection`
+
+`.param` / `.options` are single statements (parameters may use `+` continuation) and are **not** treated as fold blocks.
+
+### Folding Shortcuts
+These are all VS Code **default** shortcuts (no configuration needed) and work well for process-library files that contain many `.lib` / `.model` blocks:
+
+| Action | Windows / Linux | macOS | Notes |
+|---|---|---|---|
+| Fold innermost block at cursor | `Ctrl+Shift+[` | `⌥⌘[` | Press repeatedly to fold outward layer by layer (`.model` first, then the enclosing `.lib`, …) |
+| Unfold block at cursor | `Ctrl+Shift+]` | `⌥⌘]` | Press repeatedly to unfold inward |
+| Recursively fold block + children | `Ctrl+K Ctrl+[` | `⌘K ⌘[` | Folds the current block and everything nested inside |
+| Recursively unfold | `Ctrl+K Ctrl+]` | `⌘K ⌘]` | |
+| Toggle fold at cursor | `Ctrl+K Ctrl+L` | `⌘K ⌘L` | |
+| **Fold by level** | `Ctrl+K Ctrl+1`…`7` | `⌘K ⌘1`…`7` | `1` = only outermost (e.g. all `.lib`), `2` = also `.model`, … |
+| Fold all | `Ctrl+K Ctrl+0` | `⌘K ⌘0` | |
+| Unfold all | `Ctrl+K Ctrl+J` | `⌘K ⌘J` | |
+
+**Recommended workflow for browsing a process library**: press `Ctrl+K Ctrl+1` to collapse every top-level `.lib` section to a single line so you can survey all corners at a glance; expand the corner you need, then use `Ctrl+Shift+[` to drill down layer by layer.
+
+> To view or customize all folding shortcuts: open the Command Palette (`Ctrl+Shift+P`) and type `fold`.
 
 ## Syntax Highlighting
 
@@ -41,8 +68,8 @@
   - Other: `T` (Transmission Line), `S/W` (Switch), `X` (Subcircuit Instance)
 - **Functions**: Math functions (`abs`, `sin`, `cos`, `log`, etc.) and source functions (`pulse`, `pwl`, `sin`, `exp`)
 - **Numbers**: 
-  - Scientific notation (e.g., `1.5e+09`, `2.3E-12`) - 指数部分使用不同颜色
-  - Engineering notation (e.g., `1k`, `100n`, `2.2u`) - 单位使用不同颜色
+  - Scientific notation (e.g., `1.5e+09`, `2.3E-12`) — the exponent is colored distinctly
+  - Engineering notation (e.g., `1k`, `100n`, `2.2u`) — the scale suffix is colored distinctly
 - **Operators**: Comparison and logical operators
 - **Keywords**: Sweep parameters (`SWEEP`, `START`, `STOP`, `STEP`), analysis types (`dec`, `oct`, `lin`)
 
@@ -174,12 +201,64 @@
 - **Indentation**: Smart indentation for hierarchical blocks
 - **Code Folding**: Fold/unfold block structures
 
+## Netlist Navigation (HSPICE)
+IDE-style navigation across HSPICE netlists, including process libraries (PDKs) linked via `.INCLUDE` / `.INC` / `.LIB`. The navigation engine runs entirely in-process — no language-server dependency.
+
+### Go to Definition (`F12`)
+- From an `X` instance name → its `.SUBCKT` definition.
+- From a `M` / `Q` / `D` device model name → its `.MODEL` definition.
+- From a node on an `X` instance → the matching port in the `.SUBCKT` header.
+- From a **variable reference inside an expression** (e.g. `dL` in `lmin = 'L0-(dL+dmis)'`) → its `.param` definition.
+- From a section name in `.lib 'file' section` → the corresponding `.LIB section … .ENDL` definition.
+- Works **across files** via `.INCLUDE` / `.INC` / `.LIB` chains — included files do not need to be open.
+
+When the same name is defined in multiple places (e.g. a model/param defined in several `.LIB section` corners), VS Code's native Peek picker lists all definitions to choose from.
+
+### Hover (`Ctrl+K Ctrl+I`)
+- Over a subcircuit name → its **port list**.
+- Over a model name → its **type** (e.g. `nmos`, `pnp`).
+- Over a node on an `X` instance → the matching **port name**; over a node on a device → the **terminal name** (`drain` / `gate` / `source` / …).
+- Over a `.param` variable → its **value(s)** (all definitions when multiple corners exist).
+- Over an environment variable (`$VAR` / `${VAR}`) inside an `.INCLUDE` path → its resolved value.
+
+### Find All References (`Shift+F12`)
+- All `X` instances referencing a subcircuit, or all device instances referencing a model.
+- All expression sites referencing a `.param` variable (inside other params and model cards).
+
+### Outline
+The Outline panel lists every `.SUBCKT`, `.MODEL`, and `.param`, **nested under their containing `.LIB section`**, with click-to-navigate.
+
+### `.INCLUDE` / `.LIB` file links
+File paths in `.INCLUDE` / `.INC` and `.lib 'file' section` statements are `Ctrl+Click` links that open the target file; environment variables in paths are resolved.
+
+### `.LIB section` scope (corner selection)
+HSPICE `.lib 'file' section` selects which definitions inside `file` are active. The extension resolves the active scope automatically when possible, and lets you pin it manually otherwise:
+
+- **Automatic (determined scope)** — if the current file is included by an upstream netlist via `.lib 'thisFile' section`, that section is used; F12 jumps straight to the in-scope definition with no ambiguity.
+- **Manual (ambiguous scope)** — when a file is opened directly (e.g. a shared PDK that many top-level netlists could include), run **`SPICE: Select Active .LIB Section`** from the Command Palette or editor context menu to pin a section for the session; **`SPICE: Clear Manual Section Scope`** resets it. When no scope is pinned and the scope is ambiguous, F12 returns all definitions so you can pick.
+
+> Scope resolution is structural (which `.LIB section` a definition lives in), **not** a full HSPICE corner-value evaluation — it does not compute the numerically effective parameter values of a simulator run.
+
+### Diagnostics
+Warnings (yellow squiggle) for:
+- **Unknown subcircuit** — an `X` instance references a name not found in the file or its include graph.
+- **Port-count mismatch** — an `X` instance provides a different number of nodes than its `.SUBCKT` declares ports.
+
+### Design notes & limitations
+- Case-insensitive symbol lookup (HSPICE semantics); original case is preserved for display.
+- HSPICE `+` line continuation and `$` / `;` inline comments are handled during parsing.
+- `.param` variable references inside expressions are extracted by scanning identifiers and excluding function calls (`name(`) and HSPICE built-in functions (`max`, `pwr`, `agauss`, `v`, `i`, …). This is best-effort and may produce false positives/negatives; it affects only reference completeness, never jump correctness.
+- Nested `.SUBCKT` definitions are not supported (not valid HSPICE syntax).
+- The navigation engine is derived from [HSPICE IntelliSense](https://marketplace.visualstudio.com/items?itemName=vladimir-aptekar.hspice-intellisense) (MIT) and substantially extended; see `LICENSE` (Third-Party Notice) and `src/` file headers.
+
 ## Supported File Extensions
-`.ckt`, `.sp`, `.net`, `.cir`, `.scs`, `.mod`, `.mdl`, `.lib`, `.sub`, `.lis` (SPICE output listing), `.dspf` (DSPF parasitic netlist)
+`.ckt`, `.sp`, `.net`, `.cir`, `.scs`, `.mod`, `.mdl`, `.lib`, `.sub`, `.l` (HSPICE process library), `.lis` (SPICE output listing), `.dspf` (DSPF parasitic netlist)
 
 ## Roadmap
 - [ ] Refine DSPF parasitic R/C grouping highlight
 - [ ] More snippet coverage
+- [ ] `.param` variable references from inside X-instance / device parameter expressions (currently resolved only from `.param` values and model-card `'...'` strings)
+- [ ] Spectre (`.scs`) navigation — currently HSPICE-only; Spectre keeps syntax highlighting, folding, and snippets
 
 ## Contributing
 1. Fork it ( [https://github.com/lxTHU/vscode-spice](https://github.com/lxTHU/vscode-spice) )
@@ -190,26 +269,12 @@
 
 
 ## Change Log
-[0.2.1]
-- Fixed code folding for all block structures (.subckt/.ends, .lib/.endl, .control/.endc, .if/.endif, .data/.enddata)
-- Fixed code folding for Spectre blocks (subckt/ends, control/endc, if/endif)
-- Fixed code folding for .model blocks (using `)` as end marker)
-- Used character classes for case-insensitive matching (JavaScript regex doesn't support (?i))
-- Improved scientific notation highlighting (5e-6 shows base, exponent marker, and exponent value with different colors)
-- Improved engineering notation highlighting (100n shows value and unit with different colors)
+See [CHANGELOG.md](CHANGELOG.md) for the full history. Recent highlights:
 
-[0.2.0]
-- Enhanced syntax highlighting with semantic scope names
-- Added support for more SPICE commands
-- Added device-specific highlighting
-- Added number highlighting with engineering notation
-- Added function highlighting
-- Added operator and keyword highlighting
-- Improved language configuration with smart indentation
-- Added many new code snippets
-
-[0.1.0]
-- Add Basic Snippets Support. (ref [bzisjo's great work](https://github.com/bzisjo/vscode-spice-support))
-
-[0.0.6]
-- Fix **toggle comment bug**: you can use `Ctrl+/` to add `*` comment toggle.
+- **[0.3.1]** Fix `.lib` dual-syntax (definition vs file reference) — the root cause of navigation failure on large PDK files. Add `.param` variable navigation, `.LIB section` navigation, section-scope resolution (auto + manual), and hierarchical Outline.
+- **[0.3.0]** Add IDE-style netlist navigation: Go to Definition, Hover, Find References, Outline, Diagnostics, and `.INCLUDE` file links. Runs in-process (no language server).
+- **[0.2.4]** Fix `.lib` / `.model` folding semantics; add `.l` extension.
+- **[0.2.3]** Fix `.model` folding; add `.enddata` highlight, `.lis` / `.dspf` extensions, Spectre snippets.
+- **[0.2.1]** Fix code folding for all block structures; improve scientific/engineering notation highlighting.
+- **[0.1.0]** Add basic snippets support (ref [bzisjo's great work](https://github.com/bzisjo/vscode-spice-support)).
+- **[0.0.6]** Fix toggle-comment bug (`Ctrl+/` adds `*` comment toggle).

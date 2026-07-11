@@ -113,4 +113,19 @@ model nmos_spectre nmos (
 .param expr2='(temper+273.0)/11606.0'
 .param expr3='sqrt(ndep0_var*(1.0+3.0E-7/lr/scale)*3.8850499/(temper+273.0))*toxa/3.399936'
 
+* Test .lib reference vs definition (PDK-style, structure only)
+* The outer .LIB NAME ... .ENDL NAME is a section DEFINITION (folds).
+* The inner .lib 'file' NAME lines are file REFERENCES (must NOT fold).
+* The bare .param + continuation lines are a single statement (must NOT fold),
+* including a function-call line like +pname=agauss(0,1,1) whose trailing ')'
+* must NOT be mistaken for a .model block end.
+.LIB corner_ss
+.lib 'typical_pdk.l' setup
+.param
++pname=agauss(0,1,1)
++pname2=agauss(0,1,1)
++fac1='0.5*pname'
+.lib 'typical_pdk.l' mos_models
+.ENDL corner_ss
+
 .end

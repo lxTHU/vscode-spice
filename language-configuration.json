@@ -34,12 +34,12 @@
     ],
     "folding": {
         "markers": {
-            "start": "^\\s*\\.?\\s*(?:[Ss][Uu][Bb][Cc][Kk][Tt]|[Ll][Ii][Bb]|[Cc][Oo][Nn][Tt][Rr][Oo][Ll]|[Ii][Ff]|[Dd][Aa][Tt][Aa]|[Mm][Oo][Dd][Ee][Ll]|[Ss][Tt][Aa][Tt][Ii][Ss][Tt][Ii][Cc][Ss]|[Ss][Ee][Cc][Tt][Ii][Oo][Nn])\\b",
-            "end": "(?:^\\s*\\.?\\s*(?:[Ee][Nn][Dd][Ss]|[Ee][Nn][Dd][Ll]|[Ee][Nn][Dd][Cc]|[Ee][Nn][Dd][Ii][Ff]|[Ee][Nn][Dd][Dd][Aa][Tt][Aa]|[Ee][Nn][Dd]|[Ee][Nn][Dd][Ss][Tt][Aa][Tt][Ii][Cc][Ss]|[Ee][Nn][Dd][Ss][Ee][Cc][Tt][Ii][Oo][Nn])\\b|^\\s*\\+.*\\)\\s*$)"
+            "start": "^\\s*\\.?\\s*(?:[Ss][Uu][Bb][Cc][Kk][Tt]|[Cc][Oo][Nn][Tt][Rr][Oo][Ll]|[Ii][Ff]|[Dd][Aa][Tt][Aa]|[Mm][Oo][Dd][Ee][Ll]|[Ss][Tt][Aa][Tt][Ii][Ss][Tt][Ii][Cc][Ss]|[Ss][Ee][Cc][Tt][Ii][Oo][Nn]|[Ll][Ii][Bb](?!\\s*['\"]))\\b",
+            "end": "(?:^\\s*\\.?\\s*(?:[Ee][Nn][Dd][Ss]|[Ee][Nn][Dd][Ll]|[Ee][Nn][Dd][Cc]|[Ee][Nn][Dd][Ii][Ff]|[Ee][Nn][Dd][Dd][Aa][Tt][Aa]|[Ee][Nn][Dd]|[Ee][Nn][Dd][Ss][Tt][Aa][Tt][Ii][Cc][Ss]|[Ee][Nn][Dd][Ss][Ee][Cc][Tt][Ii][Oo][Nn])\\b|^\\s*\\+.*[\\s'\"]\\)\\s*$)"
         }
     },
     "indentationRules": {
-        "increaseIndentPattern": "^\\s*\\.?\\s*(?:[Ss][Uu][Bb][Cc][Kk][Tt]|[Ll][Ii][Bb]|[Cc][Oo][Nn][Tt][Rr][Oo][Ll]|[Ii][Ff]|[Dd][Aa][Tt][Aa]|[Mm][Oo][Dd][Ee][Ll]|[Ss][Tt][Aa][Tt][Ii][Ss][Tt][Ii][Cc][Ss]|[Ss][Ee][Cc][Tt][Ii][Oo][Nn])\\b",
+        "increaseIndentPattern": "^\\s*\\.?\\s*(?:[Ss][Uu][Bb][Cc][Kk][Tt]|[Cc][Oo][Nn][Tt][Rr][Oo][Ll]|[Ii][Ff]|[Dd][Aa][Tt][Aa]|[Mm][Oo][Dd][Ee][Ll]|[Ss][Tt][Aa][Tt][Ii][Ss][Tt][Ii][Cc][Ss]|[Ss][Ee][Cc][Tt][Ii][Oo][Nn]|[Ll][Ii][Bb](?!\\s*['\"]))\\b",
         "decreaseIndentPattern": "^\\s*\\.?\\s*(?:[Ee][Nn][Dd][Ss]|[Ee][Nn][Dd][Ll]|[Ee][Nn][Dd][Cc]|[Ee][Nn][Dd][Ii][Ff]|[Ee][Nn][Dd][Dd][Aa][Tt][Aa]|[Ee][Nn][Dd]|[Ee][Nn][Dd][Ss][Tt][Aa][Tt][Ii][Ss][Tt][Ii][Cc][Ss]|[Ee][Nn][Dd][Ss][Ee][Cc][Tt][Ii][Oo][Nn]|\\))\\b"
     },
     "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\=\\+\\[\\{\\]}\\\\|;:\\'\\\"\\,\\.\\<\\>\\/\\?\\s]+)"
