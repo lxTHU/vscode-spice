@@ -47,10 +47,10 @@ Produces `spice-<version>.vsix`. `--no-dependencies` is correct: the extension
 has **zero runtime npm dependencies** (only dev `@types/*` + `typescript`).
 
 The VSIX contents are governed by `.vscodeignore`:
-- **Shipped**: `out/`, `syntaxes/`, `snippets/`, `language-configuration.json`,
-  `package.json`, `icon.jpg`, `README.md`, `CHANGELOG.md`, `LICENSE.txt`.
-- **Excluded**: `src/`, `tsconfig.json`, `test/`, `docs/`, `node_modules/`,
-  `**/*.ts`, `*.vsix`.
+- **Shipped**: compiled extension runtime, language configuration, grammar,
+  snippets, package metadata, and required Marketplace metadata.
+- **Excluded**: source/build inputs, tests, developer-only docs, dependency
+  directories, TypeScript sources, and generated VSIX archives.
 
 To install a local VSIX for manual testing:
 `Extensions: Install from VSIX...` in VS Code, pick the file.
@@ -82,7 +82,8 @@ Manage**. Treat it like a password; it is not stored in this repo.
 
 ## Versioning conventions
 
-- `0.3.x` — netlist navigation engine (in-process, HSPICE-only).
+- `0.3.x` — netlist navigation engine (in-process; HSPICE first, Spectre from
+  0.3.5).
 - Bump **patch** for fixes/minor doc changes; **minor** for new navigation
   features (new definition kinds, providers); review `engines.vscode` bumps in
   `CHANGELOG` as they raise the minimum supported VS Code.

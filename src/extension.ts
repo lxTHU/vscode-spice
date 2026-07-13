@@ -1,11 +1,14 @@
-// VS Code extension entry point: registers HSPICE navigation providers.
-// Ported (simplified, HSPICE-only) from vladimir-aptekar/hspice-intellisense (MIT).
+// VS Code extension entry point: registers netlist navigation providers.
+// Ported (simplified) from vladimir-aptekar/hspice-intellisense (MIT).
 // Runs entirely in the extension host — no language-server process.
+// Providers are dialect-neutral: they operate on the parser's FileModel and
+// work for both HSPICE and Spectre (`.scs`) netlists.
 
 import * as vscode from "vscode";
 import {
   tokenAtPosition,
   containsPosition,
+  identifierAtText,
   type Range,
   type Pos,
   type SubcktDef,
@@ -18,7 +21,7 @@ const DEBOUNCE_MS = 300;
 
 const SPICE_SELECTOR: vscode.DocumentSelector = [{ scheme: "file", language: "spice" }];
 
-/** Device terminal names for hover on device nodes. */
+/** Device terminal names for hover on device nodes (HSPICE device letters). */
 const DEVICE_TERMINALS: Record<string, string[]> = {
   r: ["term1", "term2"],
   c: ["term1", "term2"],
@@ -34,6 +37,27 @@ const DEVICE_TERMINALS: Record<string, string[]> = {
   h: ["out+", "out−"],
   b: ["+", "−"],
   t: ["port1+", "port1−", "port2+", "port2−"],
+};
+
+/**
+ * Terminal labels for Spectre primitive instances, keyed by the primitive type
+ * name that appears as the instance target (`name ( nodes ) <type> ...`).
+ * Falls back to `DEVICE_TERMINALS` (HSPICE letters) and finally `term{i}`.
+ */
+const SPECTRE_TERMINALS: Record<string, string[]> = {
+  resistor: ["plus", "minus"],
+  capacitor: ["plus", "minus"],
+  inductor: ["plus", "minus"],
+  mosfet: ["d", "g", "s", "b"],
+  bsim1: ["d", "g", "s", "b"], bsim2: ["d", "g", "s", "b"], bsim3: ["d", "g", "s", "b"],
+  bsim4: ["d", "g", "s", "b"], bsim6: ["d", "g", "s", "b"], bsimsoi: ["d", "g", "s", "b"],
+  diode: ["positive", "negative"],
+  bjt: ["collector", "base", "emitter"], bipolar: ["c", "b", "e"],
+  jfet: ["drain", "gate", "source"],
+  vsource: ["plus", "minus"], isource: ["plus", "minus"],
+  vcvs: ["op", "om", "ip", "im"], vccs: ["op", "om", "ip", "im"],
+  ccvs: ["op", "om", "ip", "im"], cccs: ["op", "om", "ip", "im"],
+  switch: ["plus", "minus"],
 };
 
 const index = new SymbolIndex();
@@ -286,8 +310,11 @@ class SpiceDefinitionProvider implements vscode.DefinitionProvider {
       locs.map((l) => locationForFile(l.filePath, l.range)).filter((l): l is vscode.Location => !!l);
 
     if (!hit) {
-      // Universal fallback: word under cursor → param/subckt/model lookup.
-      const word = doc.getText(doc.getWordRangeAtPosition(pos));
+      // Universal fallback: identifier under cursor → param/subckt/model lookup.
+      // Use the parser's boundary rule instead of VS Code's broad word fallback,
+      // so expression operators such as `-` never become part of the lookup name.
+      const line = doc.lineAt(pos.line).text;
+      const word = identifierAtText(line, pos.character);
       if (!word) return null;
       const pd = index.findParamDefs(word);
       if (pd.length) return locate(scopedDefs(pd, filePath));
@@ -403,7 +430,7 @@ class SpiceHoverProvider implements vscode.HoverProvider {
         return mkHover(`\`${portName}\``, range);
       }
       case "nodeInDevice": {
-        const terminals = DEVICE_TERMINALS[hit.instance.deviceType];
+        const terminals = SPECTRE_TERMINALS[hit.instance.deviceType] ?? DEVICE_TERMINALS[hit.instance.deviceType];
         const termLabel = terminals?.[hit.nodeIndex] ?? `term${hit.nodeIndex + 1}`;
         return mkHover(`\`${termLabel}\``, range);
       }

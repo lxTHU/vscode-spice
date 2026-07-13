@@ -1,7 +1,11 @@
-// HSPICE netlist parser.
-// Ported (simplified, HSPICE-only) from vladimir-aptekar/hspice-intellisense (MIT).
-// Spectre branches, simulator-lang switching and case-sensitivity toggles removed;
-// HSPICE semantics assumed (case-insensitive names, `+` continuation, `$`/`;` inline comments).
+// SPICE/HSPICE + Spectre netlist parser.
+// Ported (simplified) from vladimir-aptekar/hspice-intellisense (MIT).
+// Originally HSPICE-only; Spectre support added by extending the same single-pass
+// parser (dialect tracked per logical line, so a file can mix HSPICE and Spectre
+// segments via `simulator lang=` switching). HSPICE assumptions retained:
+// case-insensitive name lookup, `+` continuation, `$`/`;`/`//` inline comments.
+// Spectre adds: `//` comments, `{ }` block joining, parenthesised instance/subckt
+// node lists, and bare (dot-less) keywords (subckt/model/parameters/section/...).
 
 /** 0-based position aligned with VS Code's `line`/`character`. */
 export interface Pos {
@@ -149,6 +153,8 @@ export interface FileModel {
   sectionDefs: Map<string, SectionDef>;
   /** `.lib 'file' section` references in this file. */
   libRefs: LibRef[];
+  /** `.func` / user function names (lowercased) — excluded from variable refs. */
+  funcNames: Set<string>;
 }
 
 export type Definition = SubcktDef | ModelDef | ParamDef | SectionDef;
@@ -159,29 +165,62 @@ interface LogicalLine {
   text: string; // joined, comment-stripped, trimmed
   lineNumber: number; // first physical line index (0-based)
   physicalLines: string[]; // raw physical lines that compose this statement
+  dialect: "hspice" | "spectre";
 }
 
-/** Strip HSPICE inline comment (`$` or `;`) outside of quotes. */
+/** Strip inline comment (`$`/`;` HSPICE, `//` Spectre/both) outside of quotes. */
 function stripInlineComment(line: string): string {
   let inQuote = false;
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (ch === '"') {
       inQuote = !inQuote;
-    } else if (!inQuote && (ch === "$" || ch === ";")) {
-      return line.slice(0, i);
+    } else if (!inQuote) {
+      // `$` / `;` truncate to end of line (HSPICE); `//` truncates to end (Spectre/modern).
+      if (ch === "$" || ch === ";") return line.slice(0, i);
+      if (ch === "/" && line[i + 1] === "/") return line.slice(0, i);
     }
   }
   return line;
 }
 
 /**
- * Split raw source into logical statements: join `+` continuations, strip
- * inline comments, drop blank and `*` full-line comments. HSPICE only.
+ * If a logical line is a `simulator lang=spectre|spice` directive, return the
+ * dialect it switches to; otherwise undefined. Tolerates spaces around `=`.
  */
-export function preprocess(source: string): LogicalLine[] {
+function detectLangSwitch(joined: string): "hspice" | "spectre" | undefined {
+  const m = /\bsimulator\s+lang\s*=\s*(\w+)/i.exec(joined);
+  if (!m) return undefined;
+  return m[1].toLowerCase() === "spectre" ? "spectre" : "hspice";
+}
+
+/**
+ * Net change in `{` depth across `s` (ignoring quoted spans). Used incrementally
+ * while joining continuation lines so we never re-scan the whole joined string.
+ */
+function braceDelta(s: string): number {
+  let delta = 0;
+  let inQuote = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '"') inQuote = !inQuote;
+    else if (!inQuote && ch === "{") delta++;
+    else if (!inQuote && ch === "}") delta--;
+  }
+  return delta;
+}
+
+/**
+ * Split raw source into logical statements: join `+` continuations, join open
+ * `{ ... }` blocks, strip inline comments, drop blank and `*` full-line
+ * comments. Each logical line is tagged with its dialect (hspice/spectre),
+ * tracked per-line from `simulator lang=` directives (initial value from the
+ * file extension).
+ */
+export function preprocess(source: string, filePath: string): LogicalLine[] {
   const physical = source.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   const result: LogicalLine[] = [];
+  let currentLang: "hspice" | "spectre" = /\.scs$/i.test(filePath) ? "spectre" : "hspice";
   let i = 0;
   while (i < physical.length) {
     const raw = physical[i];
@@ -193,19 +232,47 @@ export function preprocess(source: string): LogicalLine[] {
     const startLineIdx = i;
     const physLines = [raw];
     let joined = stripInlineComment(raw).trim();
+    let depth = braceDelta(joined);
     i++;
+    // Join HSPICE `+` continuation lines.
     while (i < physical.length) {
       const nextRaw = physical[i];
       if (nextRaw.trim().startsWith("+")) {
         physLines.push(nextRaw);
         const afterPlus = stripInlineComment(nextRaw).trimStart().slice(1).trim();
         joined += " " + afterPlus;
+        depth += braceDelta(afterPlus);
         i++;
       } else {
         break;
       }
     }
-    result.push({ text: joined, lineNumber: startLineIdx, physicalLines: physLines });
+    // Join Spectre `{ ... }` block continuations (only while a `{` is still
+    // open). Depth is tracked incrementally — we only scan each newly joined
+    // line, never the growing `joined` whole, to stay O(n). A per-statement
+    // line cap guards against a stray/unclosed `{` swallowing the whole file.
+    let braceRun = 0;
+    const BRACE_RUN_MAX = 4000;
+    while (i < physical.length && depth > 0 && braceRun < BRACE_RUN_MAX) {
+      const nextRaw = physical[i];
+      physLines.push(nextRaw);
+      const nxt = stripInlineComment(nextRaw).trim();
+      joined += " " + nxt;
+      depth += braceDelta(nxt);
+      braceRun++;
+      i++;
+    }
+    // Safety: if a `{` was never closed (malformed/truncated file), stop after
+    // an unreasonably long run so one stray brace can't swallow the whole file.
+    // (Reset depth to 0 if we hit EOF still open — handled by loop exit above.)
+    // A `simulator lang=` directive updates dialect state but is not itself a
+    // statement to index.
+    const switched = detectLangSwitch(joined);
+    if (switched) {
+      currentLang = switched;
+      continue;
+    }
+    result.push({ text: joined, lineNumber: startLineIdx, physicalLines: physLines, dialect: currentLang });
   }
   return result;
 }
@@ -252,9 +319,22 @@ export function tokenize(ll: LogicalLine): Token[] {
         pos++;
         continue;
       }
+      // Parentheses are emitted as standalone identifier tokens so Spectre
+      // `name ( nodes ) target` instance forms and `subckt NAME ( ports )`
+      // definitions can be parsed positionally. Braces are plain separators.
+      const ch = stripped[pos];
+      if (ch === "(" || ch === ")") {
+        tokens.push({ text: ch, originalText: ch, line: lineNum, character: pos, type: "identifier" });
+        pos++;
+        continue;
+      }
+      if (ch === "{" || ch === "}") {
+        pos++;
+        continue;
+      }
       const tokenStart = pos;
-      if (stripped[pos] === '"' || stripped[pos] === "'") {
-        const quote = stripped[pos];
+      if (ch === '"' || ch === "'") {
+        const quote = ch;
         pos++;
         while (pos < stripped.length && stripped[pos] !== quote) pos++;
         if (pos < stripped.length) pos++;
@@ -267,7 +347,7 @@ export function tokenize(ll: LogicalLine): Token[] {
           type: "string",
         });
       } else {
-        while (pos < stripped.length && !/\s/.test(stripped[pos])) pos++;
+        while (pos < stripped.length && !/\s/.test(stripped[pos]) && "(){}".indexOf(stripped[pos]) < 0) pos++;
         const raw = stripped.slice(tokenStart, pos);
         tokens.push(classifyToken(raw, lineNum, tokenStart));
       }
@@ -297,6 +377,49 @@ function llEnd(ll: LogicalLine): Pos {
 /** Positional tokens (exclude `key=value` params). */
 function positional(tokens: Token[]): Token[] {
   return tokens.filter((t) => t.type !== "param");
+}
+
+/** Whether a token is the standalone `(` or `)` emitted by the tokenizer. */
+function isParen(tok: Token, which: "(" | ")"): boolean {
+  return tok.type === "identifier" && tok.text === which;
+}
+
+/**
+ * Collect positional tokens between the first `(` and its matching `)`.
+ * Accepts identifiers and numbers (Spectre nodes/ports may be numeric, e.g. `1`).
+ * Returns `{ inner, openIdx, closeIdx }` or undefined if no balanced parens.
+ */
+function tokensInsideParens(tokens: Token[]): { inner: Token[]; openIdx: number; closeIdx: number } | undefined {
+  const openIdx = tokens.findIndex((t) => isParen(t, "("));
+  if (openIdx < 0) return undefined;
+  let depth = 0;
+  for (let j = openIdx; j < tokens.length; j++) {
+    if (isParen(tokens[j], "(")) depth++;
+    else if (isParen(tokens[j], ")")) {
+      depth--;
+      if (depth === 0) {
+        return { inner: positional(tokens.slice(openIdx + 1, j)), openIdx, closeIdx: j };
+      }
+    }
+  }
+  return undefined;
+}
+
+/** Extract subckt ports: HSPICE = positional tokens after the name; Spectre = inside `( )`. */
+function extractPorts(tokens: Token[], isSpectre: boolean): Token[] {
+  if (isSpectre) {
+    const parens = tokensInsideParens(tokens);
+    return parens ? parens.inner : [];
+  }
+  return positional(tokens);
+}
+
+/**
+ * Match a statement head across dialects: HSPICE `.subckt` or Spectre `subckt`.
+ * `first` is the leading token; returns true if it is the keyword in either form.
+ */
+function isHead(first: Token, keyword: string): boolean {
+  return first.text === keyword || first.text === "." + keyword;
 }
 
 function extractParams(tokens: Token[]): Map<string, string> {
@@ -330,6 +453,45 @@ const DEVICE_TYPES = new Set(Object.keys(DEVICE_NODE_COUNTS));
 
 /** Devices whose token after the node list is a model reference. */
 const MODELED_DEVICES = new Set(["m", "q", "d"]);
+
+/**
+ * Spectre built-in primitive type names. An instance whose target token (after
+ * the `( nodes )` list) matches one of these is a primitive device, NOT a
+ * subckt/model reference — it has no Definition target and is stored as a
+ * DeviceInstance without `modelName` so it never yields a spurious jump.
+ * Deliberately a superset; safe to over-include.
+ */
+const PRIMITIVE_TYPES = new Set([
+  "resistor", "res", "r", "capacitor", "cap", "c", "inductor", "ind", "l",
+  "mutual", "mosfet", "mos", "bsim1", "bsim2", "bsim3", "bsim3v3", "bsim4",
+  "bsim6", "bsimsoi", "bsimsoi1", "bsimsoi2", "bsimimg", "pdt", "ekv",
+  "diode", "jed", "junction", "bjt", "bjt5", "bjt10", "hicum", "mextram",
+  "jfet", "jfet2", "jfet3", "mesfet", "hfet", "hemt", "tfet", "feram",
+  "isource", "vsource", "vcvs", "vccs", "ccvs", "cccs", "tline", "tlinedelay",
+  "tlinesecond", "tline3", "msource", "port", "switch", "relay", "idealbalun",
+  "spt", "filegen", "adsnet", "ntxline", "gyrator", "trline", "nullor",
+]);
+
+/**
+ * Spectre statement keywords that should NOT be parsed as an instance even when
+ * they lead a line as an identifier. Keeps `parseSpectreInstance` off control
+ * statements (analysis, save/print, etc.).
+ */
+const SPECTRE_KEYWORDS = new Set([
+  "subckt", "inline", "ends", "model", "parameters", "parameter", "include",
+  "section", "endsection", "library", "endlibrary", "global", "statistics",
+  "process", "mismatch", "connect", "options", "alter", "save", "saveall",
+  "print", "plot", "info", "design", "assert", "if", "else", "endif", "end",
+  "simulator", "temp", "nodeset", "ic", "ehdl", "ahdl", "func", "endl",
+  // analysis statement heads
+  "ac", "dc", "tran", "noise", "stb", "pss", "pac", "pnoise", "pdnoise",
+  "pdisto", "pxf", "pspb", "envlp", "xf", "sens", "dcmatch", "acmatch",
+  "disto", "fourier", "tdr", "montercarlo", "sweep",
+]);
+
+function isSpectreKeyword(text: string): boolean {
+  return SPECTRE_KEYWORDS.has(text.toLowerCase());
+}
 
 // ── Instance parsers ───────────────────────────────────────────────────────
 
@@ -390,6 +552,68 @@ function parseDeviceInstance(ll: LogicalLine, tokens: Token[], filePath: string)
   };
 }
 
+/**
+ * Parse a Spectre instance: `instanceName ( nodes... ) targetName param=value ...`.
+ * Unlike HSPICE (`Xname nodes subckt`), the target name follows the parenthesised
+ * node list. The target is either a primitive type (resistor/mosfet/...), a model
+ * name, or a subckt name. Primitives become a DeviceInstance without a model
+ * reference (no jump target); models/subckts become an XInstance so the existing
+ * subckt-or-model resolver handles Definition/Hover/References.
+ */
+function parseSpectreInstance(
+  ll: LogicalLine,
+  tokens: Token[],
+  filePath: string,
+): XInstance | DeviceInstance | null {
+  const instanceTok = tokens[0];
+  const parens = tokensInsideParens(tokens);
+  if (!parens) return null;
+  const nodeToks = parens.inner;
+  // Target = first identifier/number after the closing `)`.
+  const afterClose = tokens.slice(parens.closeIdx + 1);
+  const targetTok = afterClose.find((t) => t.type === "identifier" || t.type === "number");
+  if (!targetTok) return null;
+
+  const instanceRange = { start: lineStart(ll), end: llEnd(ll) };
+  const nameRange = tokenRange(instanceTok);
+  const nodeRanges = nodeToks.map(tokenRange);
+  const params = extractParams(afterClose);
+
+  if (PRIMITIVE_TYPES.has(targetTok.text)) {
+    // Primitive device: no Definition target. Do not set modelName(Range) so the
+    // provider never treats the primitive type token as a navigable reference.
+    return {
+      kind: "device",
+      instanceName: instanceTok.text,
+      originalInstanceName: instanceTok.originalText,
+      deviceType: targetTok.text,
+      nodes: nodeToks.map((t) => t.text),
+      nodeRanges,
+      params,
+      range: instanceRange,
+      nameRange,
+      filePath,
+    };
+  }
+
+  // Model or subckt reference — store as an XInstance; findSubcktOrModel resolves
+  // subckt-first-then-model, so the same hit covers both targets.
+  return {
+    kind: "xinstance",
+    instanceName: instanceTok.text,
+    originalInstanceName: instanceTok.originalText,
+    subcktName: targetTok.text,
+    originalSubcktName: targetTok.originalText,
+    nodes: nodeToks.map((t) => t.text),
+    nodeRanges,
+    params,
+    range: instanceRange,
+    nameRange,
+    subcktNameRange: tokenRange(targetTok),
+    filePath,
+  };
+}
+
 // ── File parser ────────────────────────────────────────────────────────────
 
 export interface ParseOptions {
@@ -410,6 +634,7 @@ export function emptyFileModel(filePath: string): FileModel {
     paramDefs: new Map(),
     sectionDefs: new Map(),
     libRefs: [],
+    funcNames: new Set(),
   };
 }
 
@@ -426,18 +651,44 @@ const HSPICE_BUILTIN_FUNCS = new Set([
  * followed by `(` are treated as function calls and skipped. Built-in functions
  * are also filtered. Returns lowercased unique names.
  */
-export function extractVarRefs(expr: string): string[] {
+function createIdentifierRe(): RegExp {
+  // Match identifiers only at expression token boundaries. The lookbehind
+  // excludes names glued to a word char or decimal point, so scientific notation
+  // exponents like `1.6e-08` do not expose `e` as a variable.
+  return /(?<![\w.])([A-Za-z_]\w*)/g;
+}
+
+export function identifierAtText(text: string, offset: number): string | undefined {
+  if (offset < 0 || offset > text.length) return undefined;
+  const re = createIdentifierRe();
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (offset >= m.index && offset <= m.index + m[1].length) {
+      if (text[m.index + m[1].length] === "(") return undefined;
+      return m[1];
+    }
+  }
+  return undefined;
+}
+
+export function extractVarRefs(expr: string, extraFuncs?: Set<string>): string[] {
   const out = new Set<string>();
   // Match identifiers; capture the char right after to detect function calls.
-  const re = /([A-Za-z_]\w*)/g;
+  // Negative lookbehind `(?<![\w.])` excludes identifiers glued to a digit or
+  // decimal point — this strips the `e`/`E` exponent marker of scientific
+  // notation (e.g. `1.6e-08`, `2.134663E-08`) which would otherwise be read as
+  // a variable named `e`. A real param name is never preceded by `\w` or `.`.
+  const re = createIdentifierRe();
   let m: RegExpExecArray | null;
   while ((m = re.exec(expr)) !== null) {
     const name = m[1];
     const afterIdx = m.index + name.length;
     const after = expr[afterIdx];
     if (after === "(") continue; // function call
-    if (HSPICE_BUILTIN_FUNCS.has(name.toLowerCase())) continue;
-    out.add(name.toLowerCase());
+    const lower = name.toLowerCase();
+    if (HSPICE_BUILTIN_FUNCS.has(lower)) continue;
+    if (extraFuncs && extraFuncs.has(lower)) continue; // user `.func` name
+    out.add(lower);
   }
   return [...out];
 }
@@ -448,7 +699,7 @@ export function extractVarRefs(expr: string): string[] {
  * expressions. `value` extends until the next whitespace-separated pair (HSPICE
  * values contain no bare spaces unless quoted, and quotes are consumed here).
  */
-function parseParamDefs(ll: LogicalLine, filePath: string, section: string | undefined): ParamDef[] {
+function parseParamDefs(ll: LogicalLine, filePath: string, section: string | undefined, extraFuncs?: Set<string>): ParamDef[] {
   const defs: ParamDef[] = [];
   // Work on the joined text but track positions against physical lines for ranges.
   const joined = ll.text;
@@ -476,22 +727,22 @@ function parseParamDefs(ll: LogicalLine, filePath: string, section: string | und
       nameRange,
       filePath,
       section,
-      varRefs: extractVarRefs(valueOriginal),
+      varRefs: extractVarRefs(valueOriginal, extraFuncs),
     });
   }
   return defs;
 }
 
 /** Collect variable references referenced inside a model card's `'...'` expressions. */
-function collectModelVarRefs(tokens: Token[]): string[] {
+function collectModelVarRefs(tokens: Token[], extraFuncs?: Set<string>): string[] {
   const out = new Set<string>();
   for (const t of tokens) {
     if (t.type === "string") {
       // string token originalText includes surrounding quotes
       const inner = t.originalText.length >= 2 ? t.originalText.slice(1, -1) : t.originalText;
-      for (const v of extractVarRefs(inner)) out.add(v);
+      for (const v of extractVarRefs(inner, extraFuncs)) out.add(v);
     } else if (t.type === "param" && t.paramValue !== undefined) {
-      for (const v of extractVarRefs(t.paramValue)) out.add(v);
+      for (const v of extractVarRefs(t.paramValue, extraFuncs)) out.add(v);
     }
   }
   return [...out];
@@ -564,7 +815,7 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
   const minXInstanceNodes = opts.minXInstanceNodes ?? 2;
 
   const model = emptyFileModel(filePath);
-  const lines = preprocess(source);
+  const lines = preprocess(source, filePath);
 
   let openSubckt: SubcktDef | null = null;
   /** Stack of currently-open `.LIB section` definitions (innermost last). */
@@ -576,14 +827,31 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
     const tokens = tokenize(ll);
     if (tokens.length === 0) continue;
 
-    const first = tokens[0];
+    const isSpectre = ll.dialect === "spectre";
+    let first = tokens[0];
+    // `inline subckt NAME (...)` — spectre variant; step past the `inline` modifier.
+    if (isSpectre && first.text === "inline" && tokens[1] && tokens[1].text === "subckt") {
+      first = tokens[1];
+    }
 
-    if (first.text === ".end") break;
+    if (first.text === ".end" || first.text === "end") {
+      // Spectre `end` (standalone) terminates the netlist; HSPICE uses `.end`.
+      if (first.text === ".end") break;
+      // A bare spectre `end` can also close a block; only treat as netlist-end
+      // when it stands alone on the line.
+      if (first.text === "end" && tokens.length === 1) break;
+    }
 
-    if (first.text === ".subckt") {
+    // ── subckt definition (HSPICE `.subckt` / Spectre `subckt` / `inline subckt`) ──
+    if (isHead(first, "subckt")) {
       if (tokens.length < 2) continue;
-      const nameTok = tokens[1];
-      const portToks = positional(tokens.slice(2));
+      // `inline subckt` keeps the name at the same offset since we rewrote `first`
+      // to the `subckt` token but did not shift the token array; locate the name
+      // token right after the actual subckt keyword token in `tokens`.
+      const subcktIdx = tokens.indexOf(first);
+      const nameTok = tokens[subcktIdx + 1];
+      if (!nameTok) continue;
+      const portToks = extractPorts(tokens.slice(subcktIdx + 2), isSpectre);
       const ports: Port[] = portToks.map((t, idx) => ({
         name: t.text,
         originalName: t.originalText,
@@ -603,7 +871,7 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
       continue;
     }
 
-    if (first.text === ".ends") {
+    if (isHead(first, "ends")) {
       if (openSubckt) {
         openSubckt.range.end = llEnd(ll);
         model.subcktDefs.set(openSubckt.name, openSubckt);
@@ -612,7 +880,7 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
       continue;
     }
 
-    if (first.text === ".model") {
+    if (isHead(first, "model")) {
       if (tokens.length < 3) continue;
       const nameTok = tokens[1];
       const typeTok = tokens[2];
@@ -625,20 +893,38 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
         nameRange: tokenRange(nameTok),
         filePath,
         section: currentSection(),
-        exprVarRefs: collectModelVarRefs(tokens),
+        exprVarRefs: collectModelVarRefs(tokens, model.funcNames),
       };
       model.modelDefs.set(def.name, def);
       continue;
     }
 
-    // `.param` variable definitions.
-    if (first.text === ".param") {
-      for (const pd of parseParamDefs(ll, filePath, currentSection())) {
+    // `.func` (HSPICE) / `define` (Spectre) user function definitions.
+    // The function name is collected so later `extractVarRefs` can exclude it
+    // (a function call like `myfunc(...)` is already skipped, but collecting the
+    // name also covers `name` used without `(` in some PDK expression contexts).
+    if (first.text === ".func" || (isSpectre && first.text === "define")) {
+      const nameTok = tokens[1];
+      if (nameTok && nameTok.type === "identifier") {
+        model.funcNames.add(nameTok.text);
+      }
+      continue;
+    }
+
+    // `.param` (HSPICE) / `parameters` (Spectre) variable definitions.
+    if (first.text === ".param" || (isSpectre && (first.text === "parameters" || first.text === "parameter"))) {
+      // Spectre `parameters` may carry its name=value pairs on the same line or
+      // on continuation lines (already joined). parseParamDefs scans the joined
+      // text regardless of keyword, so reuse it.
+      for (const pd of parseParamDefs(ll, filePath, currentSection(), model.funcNames)) {
         pushParamDef(model, pd);
       }
       continue;
     }
 
+    // `.LIB` has two HSPICE forms:
+    //   reference:  .lib 'filepath' section      (first token after .lib is a quoted string)
+    //   definition: .LIB section ... .ENDL       (otherwise — opens a section block)
     // `.LIB` has two HSPICE forms:
     //   reference:  .lib 'filepath' section      (first token after .lib is a quoted string)
     //   definition: .LIB section ... .ENDL       (otherwise — opens a section block)
@@ -676,7 +962,23 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
       continue;
     }
 
-    if (first.text === ".endl") {
+    // Spectre section/library corner blocks — reused as SectionDef scope groups.
+    if (isSpectre && (first.text === "section" || first.text === "library")) {
+      const second = tokens[1];
+      if (second) {
+        const sec: SectionDef = {
+          kind: "section",
+          name: second.text,
+          originalName: second.originalText,
+          range: { start: lineStart(ll), end: llEnd(ll) },
+          nameRange: tokenRange(second),
+          filePath,
+        };
+        sectionStack.push(sec);
+      }
+      continue;
+    }
+    if (isSpectre && (first.text === "endsection" || first.text === "endlibrary")) {
       const sec = sectionStack.pop();
       if (sec) {
         sec.range.end = llEnd(ll);
@@ -685,7 +987,17 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
       continue;
     }
 
-    if (first.text === ".include" || first.text === ".inc") {
+    if (isHead(first, "endl")) {
+      const sec = sectionStack.pop();
+      if (sec) {
+        sec.range.end = llEnd(ll);
+        model.sectionDefs.set(sec.name, sec);
+      }
+      continue;
+    }
+
+    // `.include`/`.inc` (HSPICE) / `include` (Spectre). Spectre paths are quoted.
+    if (first.text === ".include" || first.text === ".inc" || (isSpectre && first.text === "include")) {
       const pathTok = tokens.slice(1).find((t) => t.type === "string" || t.type === "identifier");
       if (pathTok) {
         model.includes.push({
@@ -698,20 +1010,48 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
       continue;
     }
 
-    // Instance statements: first token starts with a device letter.
-    if (first.type === "identifier" && first.text.startsWith("x")) {
+    // Spectre statements we consume but do not index (no navigation target).
+    if (
+      isSpectre &&
+      (first.text === "global" ||
+        first.text === "statistics" ||
+        first.text === "process" ||
+        first.text === "mismatch" ||
+        first.text === "connect" ||
+        first.text === "options" ||
+        first.text === "alter")
+    ) {
+      continue;
+    }
+    // `statistics { ... }` / `process { ... }` blocks opened with `{` are joined
+    // into one logical line by preprocess; nothing to index. (Covers the case
+    // where the keyword and `{` land on the same line.)
+
+    // ── Instance statements ──
+    // HSPICE: first token starts with a device letter (`x`, `m`, `q`, `d`, ...).
+    if (!isSpectre && first.type === "identifier" && first.text.startsWith("x")) {
       const inst = parseXInstance(ll, tokens, filePath);
       if (inst && inst.nodes.length > minXInstanceNodes) {
         model.xInstances.push(inst);
       }
       continue;
     }
-
-    if (first.type === "identifier") {
+    if (!isSpectre && first.type === "identifier") {
       const devType = first.text[0];
       if (DEVICE_TYPES.has(devType) && indexedDeviceTypes.has(devType)) {
         const inst = parseDeviceInstance(ll, tokens, filePath);
         if (inst) model.deviceInstances.push(inst);
+      }
+      continue;
+    }
+
+    // Spectre instance: `name ( nodes... ) target params...`
+    if (isSpectre && first.type === "identifier" && !isSpectreKeyword(first.text)) {
+      const inst = parseSpectreInstance(ll, tokens, filePath);
+      if (inst && inst.kind === "xinstance" && inst.nodes.length > minXInstanceNodes) {
+        model.xInstances.push(inst);
+      } else if (inst && inst.kind === "device") {
+        model.deviceInstances.push(inst);
       }
     }
   }
@@ -724,6 +1064,18 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
   for (const sec of sectionStack) {
     if (!model.sectionDefs.has(sec.name)) {
       model.sectionDefs.set(sec.name, sec);
+    }
+  }
+
+  // Backfill: `.func` definitions appearing AFTER a `.param` could not be
+  // excluded from that param's varRefs during the single forward pass. Recompute
+  // param varRefs now that all funcNames are known. (Model-card exprVarRefs keep
+  // their forward-pass value; in practice `.func` precedes model cards in PDKs.)
+  if (model.funcNames.size > 0) {
+    for (const arr of model.paramDefs.values()) {
+      for (const pd of arr) {
+        pd.varRefs = extractVarRefs(pd.valueExpr, model.funcNames);
+      }
     }
   }
 
@@ -840,16 +1192,5 @@ export function tokenAtPosition(model: FileModel, pos: Pos): TokenHit | undefine
 function identifierAtOffset(expr: string, pos: Pos, valueRange: Range): string | undefined {
   if (pos.line !== valueRange.start.line) return undefined;
   const off = pos.character - valueRange.start.character;
-  if (off < 0 || off > expr.length) return undefined;
-  // Scan identifiers in expr; return the one containing `off`.
-  const re = /[A-Za-z_]\w*/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(expr)) !== null) {
-    if (off >= m.index && off <= m.index + m[1].length) {
-      // skip if function call (next char is "(")
-      if (expr[m.index + m[1].length] === "(") return undefined;
-      return m[1];
-    }
-  }
-  return undefined;
+  return identifierAtText(expr, off);
 }
