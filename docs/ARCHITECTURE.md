@@ -1,9 +1,10 @@
 # Navigation Engine — Architecture & Design
 
-The netlist-navigation engine (added in 0.3.0, extended in 0.3.1/0.3.2) gives
-the extension IDE-style Go-to-Definition / Hover / References / Outline /
-Diagnostics for HSPICE netlists. This document captures the architecture and the
-non-obvious design decisions so future contributors don't re-derive them.
+The netlist-navigation engine (added in 0.3.0, extended in 0.3.1/0.3.2, Spectre
+support in 0.3.5) gives the extension IDE-style Go-to-Definition / Hover /
+References / Outline / Diagnostics for **both HSPICE and Spectre (`.scs`)**
+netlists. This document captures the architecture and the non-obvious design
+decisions so future contributors don't re-derive them.
 
 ## High-level design
 
@@ -81,10 +82,15 @@ Name/value character offsets are mapped back to `(line, character)` ranges via
 `extractVarRefs(expr)` returns identifiers in an expression, excluding:
 - identifiers immediately followed by `(` (function calls),
 - a hardcoded HSPICE built-in function list (`HSPICE_BUILTIN_FUNCS`: `max`,
-  `pwr`, `agauss`, `sqrt`, `log`, `v`, `i`, …).
+  `pwr`, `agauss`, `sqrt`, `log`, `v`, `i`, …),
+- user `.func` / `define` function names collected per file (`FileModel.funcNames`),
+- identifiers glued to a digit or `.` — strips the `e`/`E` exponent marker of
+  scientific notation (e.g. `1.6e-08`) via a `(?<![\w.])` lookbehind.
 
 This is best-effort (see `docs/TODO.md`). Var refs are stored on `ParamDef` and
 on `ModelDef.exprVarRefs` (collected from `key='expr'` strings in model cards).
+A backfill pass recomputes `ParamDef.varRefs` once all `.func` names are known,
+so functions defined after a `.param` are still excluded.
 
 ### Section stack
 
@@ -193,7 +199,7 @@ redacted):
 - **Single-file, self-referencing** (corner `.lib 'self' section`): thousands of
   `.model`/`.param`, a few hundred `.LIB section` — `.lib` dual-syntax, `.param`
   navigation, and section scope all correct.
-- **Multi-file split** (a `.lib` entry that fans out to ~25 separate
+- **Multi-file split** (a `.lib` entry that fans out to many separate
   `.mdl`/`.ckt` files via `.include` + `.lib 'file' sec`): the include-graph
   crawler indexes the full fan-out and cross-file F12 resolves correctly
   (e.g. from the entry file to a model defined in an included module).
@@ -203,3 +209,62 @@ redacted):
 
 MOSFET/BJT/diode model references inside `.subckt` bodies are navigable
 (`M`/`Q`/`D` indexed by default since 0.3.3).
+
+## Spectre support (0.3.5)
+
+Spectre is parsed by the **same single-pass engine** that handles HSPICE — there
+is no parallel parser. The provider layer is dialect-agnostic (every provider
+calls `tokenAtPosition` + `index.findXxx`), so the only Spectre-aware code lives
+in `parser.ts`. The key mechanisms:
+
+### Per-line dialect tracking
+`LogicalLine` carries a `dialect: "hspice" | "spectre"` tag. `preprocess`
+maintains a `currentLang` state initialised from the file extension (`.scs` →
+Spectre) and updated whenever a `simulator lang=spectre|spice` directive is seen;
+that line is consumed (not indexed) and subsequent lines inherit the new dialect.
+This makes a mixed-dialect file parse correctly in one pass.
+
+### Dialect-aware tokenization & preprocessing
+- `stripInlineComment` strips `$` / `;` (HSPICE) and `//` (both) outside quotes.
+- Parentheses `(` / `)` are emitted as standalone tokens so Spectre's
+  `name ( nodes ) target` instance form and `subckt NAME ( ports )` definitions
+  are positional. `{` / `}` are separators only.
+- After `+` continuation joining, an open `{ … }` block is extended line-by-line.
+  Brace depth is tracked **incrementally** (`braceDelta` scans only the newly
+  joined line, never the growing whole string) with a per-statement cap of 4000
+  lines as a safety valve against an unclosed `{`. This is what keeps large
+  files linear — an earlier whole-string rescan was O(n²) (tens of seconds).
+
+### Head matching across dialects
+`isHead(first, "subckt")` matches both `.subckt` (HSPICE) and `subckt` (Spectre),
+so the same statement body serves both. The main loop adds Spectre branches:
+`subckt` / `inline subckt` (ports extracted from `( )` via `extractPorts`),
+`ends`, `model`, `parameters` (reuses `parseParamDefs`), `include` (quoted path),
+`section`/`library` (push a `SectionDef`), `endsection`/`endlibrary` (pop).
+`global` / `statistics` / `process` / `mismatch` / `connect` / `options` /
+`alter` are consumed but not indexed.
+
+### Spectre instances (`parseSpectreInstance`)
+A Spectre instance is `name ( nodes… ) target params…`. The target token is the
+first identifier/number after the matching `)`:
+- If `target ∈ PRIMITIVE_TYPES` → stored as a `DeviceInstance` with
+  `deviceType = target` and **no `modelName`/`modelNameRange`** (a built-in
+  primitive has no Definition target, so the provider must never treat its name
+  as a navigable reference).
+- Otherwise → stored as an `XInstance` (`subcktName = target`); the existing
+  `findSubcktOrModel` resolver (subckt-first, then model) handles the jump.
+
+`PRIMITIVE_TYPES` is a deliberately over-inclusive superset of Spectre built-in
+primitives (`resistor`, `capacitor`, `inductor`, `mosfet`, `bsim3`/`bsim4`/…,
+`diode`, `bjt`, `jfet`, `vsource`, `isource`, `vcvs`/`vccs`/`ccvs`/`cccs`,
+`tline`, `switch`, …). `SPECTRE_KEYWORDS` keeps the instance branch off control
+statements (`ac`/`dc`/`tran`/`save`/`print`/…).
+
+### Hover terminals for primitives
+`extension.ts` keeps `SPECTRE_TERMINALS` (primitive name → terminal labels,
+e.g. `mosfet → [d,g,s,b]`); the `nodeInDevice` hover looks it up first, falling
+back to the HSPICE-letter `DEVICE_TERMINALS`, then `term{i}`.
+
+Validated on large real-world Spectre PDK model libraries (vendor/process
+redacted): files well over a hundred thousand lines index in 1–2 seconds, with
+subckt / model / section / include counts in the hundreds each.

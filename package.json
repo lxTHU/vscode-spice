@@ -1,10 +1,15 @@
 {
     "name": "spice",
     "displayName": "SPICE",
-    "description": "SPICE/HSPICE/Spectre language support: syntax highlighting, code folding, snippets, and IDE-style netlist navigation (Go-to-Definition, Hover, References, Outline, .param/.LIB section resolution).",
-    "version": "0.3.3",
-    "icon": "icon.jpg",
+    "description": "SPICE/HSPICE/Spectre language support: syntax highlighting, code folding, snippets, and IDE-style netlist navigation (Go-to-Definition, Hover, References, Outline, .param/.section resolution). Both HSPICE and Spectre (.scs) are navigable.",
+    "version": "0.3.7",
+    "icon": "icon.png",
     "publisher": "xuanli",
+    "author": {
+        "name": "Xuan Li",
+        "url": "https://github.com/lxTHU/vscode-spice"
+    },
+    "copyright": "Copyright (c) 2022-2026 Xuan Li, Wiener Technology, Beijing",
     "homepage": "https://github.com/lxTHU/vscode-spice",
 	"repository": {
         "type": "git",      

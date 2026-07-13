@@ -6,6 +6,8 @@
 > 
 > Snippets reference: [bzisjo/vscode-spice-support](https://github.com/bzisjo/vscode-spice-support)
 
+> Maintained by Xuan Li, Wiener Technology, Beijing.
+
 ## GitHub repos
 [lxTHU/vscode-spice](https://github.com/lxTHU/vscode-spice)
 
@@ -14,7 +16,8 @@
 
 ## Docs
 - [CHANGELOG.md](CHANGELOG.md) — release history
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — navigation engine design (`.lib` dual syntax, `.param`/section scope, capability comparison)
+- [docs/SYNTAX.md](docs/SYNTAX.md) — SPICE/HSPICE vs Spectre dialect comparison & navigation matrix
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — navigation engine design (`.lib` dual syntax, `.param`/section scope, Spectre support)
 - [docs/RELEASE.md](docs/RELEASE.md) — build, package, and publish guide
 - [docs/TODO.md](docs/TODO.md) — known limitations and backlog
 
@@ -201,8 +204,10 @@ These are all VS Code **default** shortcuts (no configuration needed) and work w
 - **Indentation**: Smart indentation for hierarchical blocks
 - **Code Folding**: Fold/unfold block structures
 
-## Netlist Navigation (HSPICE)
-IDE-style navigation across HSPICE netlists, including process libraries (PDKs) linked via `.INCLUDE` / `.INC` / `.LIB`. The navigation engine runs entirely in-process — no language-server dependency.
+## Netlist Navigation
+IDE-style navigation across HSPICE and Spectre netlists, including process libraries (PDKs) linked via `.INCLUDE` / `.INC` / `.LIB` (HSPICE) or `include` / `section` (Spectre). The navigation engine runs entirely in-process — no language-server dependency. See [docs/SYNTAX.md](docs/SYNTAX.md) for what each dialect supports.
+
+> Navigation works in both dialects in any `.sp` / `.scs` / `.lib` file. The examples below use HSPICE dot-command syntax; the Spectre equivalents (bare `subckt`/`model`/`parameters`/`include`/`section`) work the same way.
 
 ### Go to Definition (`F12`)
 - From an `X` instance name → its `.SUBCKT` definition.
@@ -247,7 +252,7 @@ Warnings (yellow squiggle) for:
 ### Design notes & limitations
 - Case-insensitive symbol lookup (HSPICE semantics); original case is preserved for display.
 - HSPICE `+` line continuation and `$` / `;` inline comments are handled during parsing.
-- `.param` variable references inside expressions are extracted by scanning identifiers and excluding function calls (`name(`) and HSPICE built-in functions (`max`, `pwr`, `agauss`, `v`, `i`, …). This is best-effort and may produce false positives/negatives; it affects only reference completeness, never jump correctness.
+- `.param` variable references inside expressions are extracted by scanning identifiers and excluding function calls (`name(`), user `.func` names, scientific-notation exponent markers, and HSPICE built-in functions (`max`, `pwr`, `agauss`, `v`, `i`, …). This is best-effort and may produce false positives/negatives; it affects only reference completeness, never jump correctness.
 - Nested `.SUBCKT` definitions are not supported (not valid HSPICE syntax).
 - The navigation engine is derived from [HSPICE IntelliSense](https://marketplace.visualstudio.com/items?itemName=vladimir-aptekar.hspice-intellisense) (MIT) and substantially extended; see `LICENSE` (Third-Party Notice) and `src/` file headers.
 
@@ -258,7 +263,7 @@ Warnings (yellow squiggle) for:
 - [ ] Refine DSPF parasitic R/C grouping highlight
 - [ ] More snippet coverage
 - [ ] `.param` variable references from inside X-instance / device parameter expressions (currently resolved only from `.param` values and model-card `'...'` strings)
-- [ ] Spectre (`.scs`) navigation — currently HSPICE-only; Spectre keeps syntax highlighting, folding, and snippets
+- [x] Spectre (`.scs`) navigation — added in 0.3.5 (Go-to-Definition / Hover / References / Outline / `include` links / `section` scope)
 
 ## Contributing
 1. Fork it ( [https://github.com/lxTHU/vscode-spice](https://github.com/lxTHU/vscode-spice) )
@@ -271,6 +276,9 @@ Warnings (yellow squiggle) for:
 ## Change Log
 See [CHANGELOG.md](CHANGELOG.md) for the full history. Recent highlights:
 
+- **[0.3.7]** Fix expression identifier boundaries so F12 fallback resolves operator-adjacent params like `a-noiseflagn` / `(-noiseflagn)` to `noiseflagn`.
+- **[0.3.6]** Fix expression reference extraction for scientific notation and user `.func` names.
+- **[0.3.5]** Spectre (`.scs`) navigation: Go-to-Definition / Hover / References / Outline / `include` links / `section` scope now work on Spectre model libraries too, including mixed-dialect files. New [docs/SYNTAX.md](docs/SYNTAX.md) compares the two dialect families.
 - **[0.3.1]** Fix `.lib` dual-syntax (definition vs file reference) — the root cause of navigation failure on large PDK files. Add `.param` variable navigation, `.LIB section` navigation, section-scope resolution (auto + manual), and hierarchical Outline.
 - **[0.3.0]** Add IDE-style netlist navigation: Go to Definition, Hover, Find References, Outline, Diagnostics, and `.INCLUDE` file links. Runs in-process (no language server).
 - **[0.2.4]** Fix `.lib` / `.model` folding semantics; add `.l` extension.
@@ -278,3 +286,6 @@ See [CHANGELOG.md](CHANGELOG.md) for the full history. Recent highlights:
 - **[0.2.1]** Fix code folding for all block structures; improve scientific/engineering notation highlighting.
 - **[0.1.0]** Add basic snippets support (ref [bzisjo's great work](https://github.com/bzisjo/vscode-spice-support)).
 - **[0.0.6]** Fix toggle-comment bug (`Ctrl+/` adds `*` comment toggle).
+
+## License
+MIT — Copyright (c) 2022-2026 Xuan Li, Wiener Technology, Beijing. See [LICENSE](LICENSE).

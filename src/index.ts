@@ -1,5 +1,7 @@
 // Symbol index with cross-file `.INCLUDE` resolution and on-disk caching.
-// Ported (simplified, HSPICE-only) from vladimir-aptekar/hspice-intellisense (MIT).
+// Ported (simplified) from vladimir-aptekar/hspice-intellisense (MIT).
+// Dialect-neutral: indexes FileModels produced by the parser for both HSPICE
+// and Spectre netlists.
 
 import * as fs from "fs";
 import * as path from "path";

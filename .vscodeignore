@@ -1,5 +1,4 @@
 # VS Code extension packaging — exclude everything not needed at runtime.
-# Keep: package.json, language-configuration.json, syntaxes/, snippets/, icon.jpg, README.md, CHANGELOG.md, LICENSE, out/
 
 # Source & build config (compiled output in out/ IS shipped)
 src/
@@ -11,7 +10,9 @@ node_modules/
 test/
 .vscode/
 *.sp
-vsc-extension-quickstart.md
+*.md
+!README.md
+!CHANGELOG.md
 
 # Version control
 .git/
