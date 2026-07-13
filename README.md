@@ -252,7 +252,7 @@ Warnings (yellow squiggle) for:
 ### Design notes & limitations
 - Case-insensitive symbol lookup (HSPICE semantics); original case is preserved for display.
 - HSPICE `+` line continuation and `$` / `;` inline comments are handled during parsing.
-- `.param` variable references inside expressions are extracted by scanning identifiers and excluding function calls (`name(`), user `.func` names, scientific-notation exponent markers, and HSPICE built-in functions (`max`, `pwr`, `agauss`, `v`, `i`, …). This is best-effort and may produce false positives/negatives; it affects only reference completeness, never jump correctness.
+- `.param` variable references inside expressions are extracted by scanning identifiers and excluding function calls (`name(`), user `.func` names, scientific-notation exponent markers, and HSPICE built-in functions (`max`, `pwr`, `agauss`, `v`, `i`, …). This covers `.param` values, model-card `key='expr'` values, and X/device/Spectre instance parameter expressions. It is best-effort and may produce false positives/negatives; it affects only reference completeness, never jump correctness.
 - Nested `.SUBCKT` definitions are not supported (not valid HSPICE syntax).
 - The navigation engine is derived from [HSPICE IntelliSense](https://marketplace.visualstudio.com/items?itemName=vladimir-aptekar.hspice-intellisense) (MIT) and substantially extended; see `LICENSE` (Third-Party Notice) and `src/` file headers.
 
@@ -262,7 +262,7 @@ Warnings (yellow squiggle) for:
 ## Roadmap
 - [ ] Refine DSPF parasitic R/C grouping highlight
 - [ ] More snippet coverage
-- [ ] `.param` variable references from inside X-instance / device parameter expressions (currently resolved only from `.param` values and model-card `'...'` strings)
+- [x] `.param` variable references from inside X-instance / device / Spectre instance parameter expressions
 - [x] Spectre (`.scs`) navigation — added in 0.3.5 (Go-to-Definition / Hover / References / Outline / `include` links / `section` scope)
 
 ## Contributing
@@ -276,6 +276,7 @@ Warnings (yellow squiggle) for:
 ## Change Log
 See [CHANGELOG.md](CHANGELOG.md) for the full history. Recent highlights:
 
+- **[0.3.8]** Add exact `.param` references inside model-card and instance/device parameter expressions.
 - **[0.3.7]** Fix expression identifier boundaries so F12 fallback resolves operator-adjacent params like `a-noiseflagn` / `(-noiseflagn)` to `noiseflagn`.
 - **[0.3.6]** Fix expression reference extraction for scientific notation and user `.func` names.
 - **[0.3.5]** Spectre (`.scs`) navigation: Go-to-Definition / Hover / References / Outline / `include` links / `section` scope now work on Spectre model libraries too, including mixed-dialect files. New [docs/SYNTAX.md](docs/SYNTAX.md) compares the two dialect families.

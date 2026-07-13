@@ -62,6 +62,13 @@ export interface ModelDef {
   section?: string;
   /** Parameter names referenced inside this model card's `'...'` expressions. */
   exprVarRefs?: string[];
+  /** Exact parameter references inside this model card's expressions. */
+  exprRefs?: ExprRef[];
+}
+
+export interface ExprRef {
+  name: string;
+  range: Range;
 }
 
 export interface IncludeRef {
@@ -86,6 +93,8 @@ export interface ParamDef {
   section?: string;
   /** Parameter names referenced inside valueExpr. */
   varRefs?: string[];
+  /** Exact parameter references inside valueExpr. */
+  exprRefs?: ExprRef[];
 }
 
 /** `.LIB name` ... `.ENDL name` section definition. */
@@ -119,6 +128,8 @@ export interface XInstance {
   nodes: string[];
   nodeRanges: Range[];
   params: Map<string, string>;
+  /** Parameter names referenced inside instance parameter expressions. */
+  paramRefs?: ExprRef[];
   range: Range;
   nameRange: Range;
   subcktNameRange: Range;
@@ -135,6 +146,8 @@ export interface DeviceInstance {
   nodes: string[];
   nodeRanges: Range[];
   params: Map<string, string>;
+  /** Parameter names referenced inside device parameter expressions. */
+  paramRefs?: ExprRef[];
   range: Range;
   nameRange: Range;
   filePath: string;
@@ -432,6 +445,50 @@ function extractParams(tokens: Token[]): Map<string, string> {
   return map;
 }
 
+function singleLineRange(line: number, start: number, end: number): Range {
+  return { start: { line, character: start }, end: { line, character: end } };
+}
+
+function paramTokenValueExpr(tok: Token): { expr: string; line: number; character: number } | undefined {
+  if (tok.type !== "param") return undefined;
+  const eqIdx = tok.originalText.indexOf("=");
+  if (eqIdx <= 0 || eqIdx >= tok.originalText.length - 1) return undefined;
+  let value = tok.originalText.slice(eqIdx + 1);
+  let character = tok.character + eqIdx + 1;
+  if (value.length >= 2 && ((value[0] === "'" && value[value.length - 1] === "'") || (value[0] === '"' && value[value.length - 1] === '"'))) {
+    value = value.slice(1, -1);
+    character++;
+  }
+  return { expr: value, line: tok.line, character };
+}
+
+function stringTokenValueExpr(tok: Token): { expr: string; line: number; character: number } | undefined {
+  if (tok.type !== "string") return undefined;
+  let value = tok.originalText;
+  let character = tok.character;
+  if (value.length >= 2 && ((value[0] === "'" && value[value.length - 1] === "'") || (value[0] === '"' && value[value.length - 1] === '"'))) {
+    value = value.slice(1, -1);
+    character++;
+  }
+  return { expr: value, line: tok.line, character };
+}
+
+function collectTokenExprRefs(tokens: Token[], extraFuncs?: Set<string>): ExprRef[] {
+  const refs: ExprRef[] = [];
+  for (const tok of tokens) {
+    const info = paramTokenValueExpr(tok) ?? stringTokenValueExpr(tok);
+    if (!info) continue;
+    refs.push(
+      ...collectExprRefs(
+        info.expr,
+        (start, end) => singleLineRange(info.line, info.character + start, info.character + end),
+        extraFuncs,
+      ),
+    );
+  }
+  return refs;
+}
+
 function rawPathText(tok: Token): string {
   if (tok.type === "string") {
     const s = tok.originalText;
@@ -495,7 +552,7 @@ function isSpectreKeyword(text: string): boolean {
 
 // ── Instance parsers ───────────────────────────────────────────────────────
 
-function parseXInstance(ll: LogicalLine, tokens: Token[], filePath: string): XInstance | null {
+function parseXInstance(ll: LogicalLine, tokens: Token[], filePath: string, extraFuncs?: Set<string>): XInstance | null {
   if (tokens.length < 3) return null;
   const instanceTok = tokens[0];
   const rest = tokens.slice(1);
@@ -512,6 +569,7 @@ function parseXInstance(ll: LogicalLine, tokens: Token[], filePath: string): XIn
     nodes: nodeToks.map((t) => t.text),
     nodeRanges: nodeToks.map(tokenRange),
     params: extractParams(rest),
+    paramRefs: collectTokenExprRefs(rest, extraFuncs),
     range: { start: lineStart(ll), end: llEnd(ll) },
     nameRange: tokenRange(instanceTok),
     subcktNameRange: tokenRange(subcktTok),
@@ -519,7 +577,7 @@ function parseXInstance(ll: LogicalLine, tokens: Token[], filePath: string): XIn
   };
 }
 
-function parseDeviceInstance(ll: LogicalLine, tokens: Token[], filePath: string): DeviceInstance | null {
+function parseDeviceInstance(ll: LogicalLine, tokens: Token[], filePath: string, extraFuncs?: Set<string>): DeviceInstance | null {
   if (tokens.length < 2) return null;
   const instanceTok = tokens[0];
   const devType = instanceTok.text[0];
@@ -546,6 +604,7 @@ function parseDeviceInstance(ll: LogicalLine, tokens: Token[], filePath: string)
     nodes: nodeToks.map((t) => t.text),
     nodeRanges: nodeToks.map(tokenRange),
     params: extractParams(rest),
+    paramRefs: collectTokenExprRefs(rest, extraFuncs),
     range: { start: lineStart(ll), end: llEnd(ll) },
     nameRange: tokenRange(instanceTok),
     filePath,
@@ -564,6 +623,7 @@ function parseSpectreInstance(
   ll: LogicalLine,
   tokens: Token[],
   filePath: string,
+  extraFuncs?: Set<string>,
 ): XInstance | DeviceInstance | null {
   const instanceTok = tokens[0];
   const parens = tokensInsideParens(tokens);
@@ -578,6 +638,7 @@ function parseSpectreInstance(
   const nameRange = tokenRange(instanceTok);
   const nodeRanges = nodeToks.map(tokenRange);
   const params = extractParams(afterClose);
+  const paramRefs = collectTokenExprRefs(afterClose, extraFuncs);
 
   if (PRIMITIVE_TYPES.has(targetTok.text)) {
     // Primitive device: no Definition target. Do not set modelName(Range) so the
@@ -590,6 +651,7 @@ function parseSpectreInstance(
       nodes: nodeToks.map((t) => t.text),
       nodeRanges,
       params,
+      paramRefs,
       range: instanceRange,
       nameRange,
       filePath,
@@ -607,6 +669,7 @@ function parseSpectreInstance(
     nodes: nodeToks.map((t) => t.text),
     nodeRanges,
     params,
+    paramRefs,
     range: instanceRange,
     nameRange,
     subcktNameRange: tokenRange(targetTok),
@@ -619,7 +682,7 @@ function parseSpectreInstance(
 export interface ParseOptions {
   /** Device type letters (lowercase) whose instances are stored. Defaults to low-volume types. */
   indexedDeviceTypes?: Set<string>;
-  /** X-instances with this many nodes or fewer are skipped. Default 4. */
+  /** X-instances with this many nodes or fewer are skipped. Default 2. */
   minXInstanceNodes?: number;
 }
 
@@ -658,6 +721,40 @@ function createIdentifierRe(): RegExp {
   return /(?<![\w.])([A-Za-z_]\w*)/g;
 }
 
+function extractVarRefMatches(expr: string, extraFuncs?: Set<string>): { name: string; start: number; end: number }[] {
+  const out: { name: string; start: number; end: number }[] = [];
+  const seen = new Set<string>();
+  const re = createIdentifierRe();
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(expr)) !== null) {
+    const name = m[1];
+    const afterIdx = m.index + name.length;
+    const after = expr[afterIdx];
+    if (after === "(") continue;
+    const lower = name.toLowerCase();
+    if (HSPICE_BUILTIN_FUNCS.has(lower)) continue;
+    if (extraFuncs && extraFuncs.has(lower)) continue;
+    const key = `${lower}:${m.index}:${afterIdx}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ name: lower, start: m.index, end: afterIdx });
+  }
+  return out;
+}
+
+function collectExprRefs(
+  expr: string,
+  rangeForOffset: (start: number, end: number) => Range | undefined,
+  extraFuncs?: Set<string>,
+): ExprRef[] {
+  const refs: ExprRef[] = [];
+  for (const match of extractVarRefMatches(expr, extraFuncs)) {
+    const range = rangeForOffset(match.start, match.end);
+    if (range) refs.push({ name: match.name, range });
+  }
+  return refs;
+}
+
 export function identifierAtText(text: string, offset: number): string | undefined {
   if (offset < 0 || offset > text.length) return undefined;
   const re = createIdentifierRe();
@@ -673,22 +770,8 @@ export function identifierAtText(text: string, offset: number): string | undefin
 
 export function extractVarRefs(expr: string, extraFuncs?: Set<string>): string[] {
   const out = new Set<string>();
-  // Match identifiers; capture the char right after to detect function calls.
-  // Negative lookbehind `(?<![\w.])` excludes identifiers glued to a digit or
-  // decimal point — this strips the `e`/`E` exponent marker of scientific
-  // notation (e.g. `1.6e-08`, `2.134663E-08`) which would otherwise be read as
-  // a variable named `e`. A real param name is never preceded by `\w` or `.`.
-  const re = createIdentifierRe();
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(expr)) !== null) {
-    const name = m[1];
-    const afterIdx = m.index + name.length;
-    const after = expr[afterIdx];
-    if (after === "(") continue; // function call
-    const lower = name.toLowerCase();
-    if (HSPICE_BUILTIN_FUNCS.has(lower)) continue;
-    if (extraFuncs && extraFuncs.has(lower)) continue; // user `.func` name
-    out.add(lower);
+  for (const match of extractVarRefMatches(expr, extraFuncs)) {
+    out.add(match.name);
   }
   return [...out];
 }
@@ -714,9 +797,17 @@ function parseParamDefs(ll: LogicalLine, filePath: string, section: string | und
     // value span starts after `name<ws>=<ws>`; m[2] is the full value token.
     const valFullStart = m.index + m[0].length - m[2].length;
     const valFullEnd = m.index + m[0].length;
+    const quotedValue = m[3] !== undefined || m[4] !== undefined;
+    const valExprStart = valFullStart + (quotedValue ? 1 : 0);
+    const valExprEnd = valFullEnd - (quotedValue ? 1 : 0);
     const nameRange = offsetRange(ll, nameStart, nameEnd);
-    const valueRange = offsetRange(ll, valFullStart, valFullEnd);
+    const valueRange = offsetRange(ll, valExprStart, valExprEnd);
     if (!nameRange || !valueRange) continue;
+    const exprRefs = collectExprRefs(
+      valueOriginal,
+      (start, end) => offsetRange(ll, valExprStart + start, valExprStart + end),
+      extraFuncs,
+    );
     defs.push({
       kind: "param",
       name: nameOriginal.toLowerCase(),
@@ -727,7 +818,8 @@ function parseParamDefs(ll: LogicalLine, filePath: string, section: string | und
       nameRange,
       filePath,
       section,
-      varRefs: extractVarRefs(valueOriginal, extraFuncs),
+      varRefs: exprRefs.map((ref) => ref.name),
+      exprRefs,
     });
   }
   return defs;
@@ -894,6 +986,7 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
         filePath,
         section: currentSection(),
         exprVarRefs: collectModelVarRefs(tokens, model.funcNames),
+        exprRefs: collectTokenExprRefs(tokens, model.funcNames),
       };
       model.modelDefs.set(def.name, def);
       continue;
@@ -1030,7 +1123,7 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
     // ── Instance statements ──
     // HSPICE: first token starts with a device letter (`x`, `m`, `q`, `d`, ...).
     if (!isSpectre && first.type === "identifier" && first.text.startsWith("x")) {
-      const inst = parseXInstance(ll, tokens, filePath);
+      const inst = parseXInstance(ll, tokens, filePath, model.funcNames);
       if (inst && inst.nodes.length > minXInstanceNodes) {
         model.xInstances.push(inst);
       }
@@ -1039,7 +1132,7 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
     if (!isSpectre && first.type === "identifier") {
       const devType = first.text[0];
       if (DEVICE_TYPES.has(devType) && indexedDeviceTypes.has(devType)) {
-        const inst = parseDeviceInstance(ll, tokens, filePath);
+        const inst = parseDeviceInstance(ll, tokens, filePath, model.funcNames);
         if (inst) model.deviceInstances.push(inst);
       }
       continue;
@@ -1047,7 +1140,7 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
 
     // Spectre instance: `name ( nodes... ) target params...`
     if (isSpectre && first.type === "identifier" && !isSpectreKeyword(first.text)) {
-      const inst = parseSpectreInstance(ll, tokens, filePath);
+      const inst = parseSpectreInstance(ll, tokens, filePath, model.funcNames);
       if (inst && inst.kind === "xinstance" && inst.nodes.length > minXInstanceNodes) {
         model.xInstances.push(inst);
       } else if (inst && inst.kind === "device") {
@@ -1101,10 +1194,10 @@ export type TokenHit =
   | { kind: "nodeInDevice"; instance: DeviceInstance; nodeIndex: number }
   | { kind: "includeDirective"; path: string }
   | { kind: "libRefPath"; path: string }
-  | { kind: "libRefSection"; sectionName: string; originalSectionName?: string }
-  | { kind: "paramDef"; paramDef: ParamDef }
-  | { kind: "paramRef"; name: string }
-  | { kind: "sectionDef"; sectionName: string };
+	  | { kind: "libRefSection"; sectionName: string; originalSectionName?: string }
+	  | { kind: "paramDef"; paramDef: ParamDef }
+	  | { kind: "paramRef"; name: string }
+	  | { kind: "sectionDef"; sectionName: string };
 
 /** Determine what is under the cursor in a parsed file. */
 export function tokenAtPosition(model: FileModel, pos: Pos): TokenHit | undefined {
@@ -1133,29 +1226,39 @@ export function tokenAtPosition(model: FileModel, pos: Pos): TokenHit | undefine
   }
 
   // 2. Instance references.
-  for (const inst of model.xInstances) {
-    if (containsPosition(inst.nameRange, pos) || containsPosition(inst.subcktNameRange, pos)) {
-      return { kind: "subcktRef", subcktName: inst.subcktName };
-    }
-    for (let i = 0; i < inst.nodeRanges.length; i++) {
-      if (containsPosition(inst.nodeRanges[i], pos)) {
-        return { kind: "nodeInXInstance", instance: inst, nodeIndex: i };
-      }
-    }
-    if (containsPosition(inst.range, pos)) {
-      return { kind: "subcktRef", subcktName: inst.subcktName };
-    }
-  }
-  for (const dev of model.deviceInstances) {
+	  for (const inst of model.xInstances) {
+	    if (containsPosition(inst.nameRange, pos) || containsPosition(inst.subcktNameRange, pos)) {
+	      return { kind: "subcktRef", subcktName: inst.subcktName };
+	    }
+	    for (let i = 0; i < inst.nodeRanges.length; i++) {
+	      if (containsPosition(inst.nodeRanges[i], pos)) {
+	        return { kind: "nodeInXInstance", instance: inst, nodeIndex: i };
+	      }
+	    }
+	    for (const ref of inst.paramRefs ?? []) {
+	      if (containsPosition(ref.range, pos)) {
+	        return { kind: "paramRef", name: ref.name };
+	      }
+	    }
+	    if (containsPosition(inst.range, pos)) {
+	      return { kind: "subcktRef", subcktName: inst.subcktName };
+	    }
+	  }
+	  for (const dev of model.deviceInstances) {
     if (dev.modelNameRange && containsPosition(dev.modelNameRange, pos)) {
       return { kind: "modelRef", modelName: dev.modelName ?? "" };
     }
-    for (let i = 0; i < dev.nodeRanges.length; i++) {
-      if (containsPosition(dev.nodeRanges[i], pos)) {
-        return { kind: "nodeInDevice", instance: dev, nodeIndex: i };
-      }
-    }
-  }
+	    for (let i = 0; i < dev.nodeRanges.length; i++) {
+	      if (containsPosition(dev.nodeRanges[i], pos)) {
+	        return { kind: "nodeInDevice", instance: dev, nodeIndex: i };
+	      }
+	    }
+	    for (const ref of dev.paramRefs ?? []) {
+	      if (containsPosition(ref.range, pos)) {
+	        return { kind: "paramRef", name: ref.name };
+	      }
+	    }
+	  }
 
   // 3. `.lib` reference: path click vs section-name click.
   for (const ref of model.libRefs) {
@@ -1173,16 +1276,28 @@ export function tokenAtPosition(model: FileModel, pos: Pos): TokenHit | undefine
   }
 
   // 4. Expression variable reference inside a param value (cursor on valueExpr).
-  for (const arr of model.paramDefs.values()) {
-    for (const pd of arr) {
-      if (containsPosition(pd.valueRange, pos)) {
-        const name = identifierAtOffset(pd.valueExpr, pos, pd.valueRange);
-        if (name) return { kind: "paramRef", name: name.toLowerCase() };
-      }
-    }
-  }
-  return undefined;
-}
+	  for (const arr of model.paramDefs.values()) {
+	    for (const pd of arr) {
+	      for (const ref of pd.exprRefs ?? []) {
+	        if (containsPosition(ref.range, pos)) {
+	          return { kind: "paramRef", name: ref.name };
+	        }
+	      }
+	      if (containsPosition(pd.valueRange, pos)) {
+	        const name = identifierAtOffset(pd.valueExpr, pos, pd.valueRange);
+	        if (name) return { kind: "paramRef", name: name.toLowerCase() };
+	      }
+	    }
+	  }
+	  for (const def of model.modelDefs.values()) {
+	    for (const ref of def.exprRefs ?? []) {
+	      if (containsPosition(ref.range, pos)) {
+	        return { kind: "paramRef", name: ref.name };
+	      }
+	    }
+	  }
+	  return undefined;
+	}
 
 /**
  * If the cursor sits on an identifier inside an expression value, return it.
