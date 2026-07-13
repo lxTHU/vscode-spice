@@ -12,14 +12,11 @@ either known design limits or lower-priority improvements.
   negative lookbehind that strips the `e`/`E` exponent marker of scientific
   notation like `1.6e-08`, since 0.3.6). Since 0.3.7 the parser, `.param`
   cursor hit-testing, and provider fallback share the same identifier boundary
-  helper for operator-adjacent names such as `a-noiseflagn`. Unknown simulator
-  built-in functions may still be mis-classified. Affects reference completeness
-  only, never jump correctness.
-- **`tokenAtPosition` variable detection covers `.param` value expressions but
-  not model-card `key='expr'` strings.** Clicking a variable inside a model card
-  falls back to the shared identifier resolver (works, but does not return
-  `paramRef` hit metadata or model-card subranges). Storing per-string ranges on
-  `ModelDef` would make this precise.
+  helper for operator-adjacent names such as `a-noiseflagn`. Since 0.3.8,
+  references in `.param` values, model-card `key='expr'` values, and
+  X/device/Spectre instance parameter expressions are indexed with exact ranges.
+  Unknown simulator built-in functions may still be mis-classified. Affects
+  reference completeness only, never jump correctness.
 - **`.param` value ranges across physical lines** (`+` continuation with an
   expression split across lines) use single-line approximation in
   `identifierAtOffset`; multi-line value expressions may not resolve the clicked

@@ -3,6 +3,16 @@ All notable changes to the "spice" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.3.8] - 2026-07-13
+### Fixed
+- **Parameter references are now indexed inside instance and device parameter
+  expressions.** F12 / Hover / Find References now work on `.param` names used
+  in HSPICE `X... key='expr'`, modeled-device params such as `M... w='w0+dw'`,
+  and Spectre instance params such as `mp1 (...) nch w=wp l='wn+dw'`.
+- **Model-card expression hits are now precise.** Variables inside model-card
+  `key='expr'` values now return `paramRef` hits and exact reference ranges
+  instead of falling back to a broad word lookup or whole-card reference range.
+
 ## [0.3.7] - 2026-07-12
 ### Fixed
 - **Expression identifier boundaries are now consistent.** Go-to-Definition

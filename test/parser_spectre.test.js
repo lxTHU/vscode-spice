@@ -9,6 +9,7 @@
 const assert = require("assert");
 const fs = require("fs");
 const { parseFile, tokenize, preprocess, extractVarRefs, identifierAtText, tokenAtPosition } = require("../out/parser.js");
+const { SymbolIndex } = require("../out/index.js");
 
 let passed = 0;
 function ok(name, cond) {
@@ -179,5 +180,57 @@ function wordAt(text, offset) {
 }
 ok("wordPattern treats minus as identifier boundary",
   wordAt("a-noiseflagn", "a-noiseflagn".indexOf("noiseflagn")) === "noiseflagn");
+
+// ── 7. Param refs in model cards and instance/device params ─────────────────
+const paramRefSrc = `
+.param lmin=1u w0=2u dw=0
+.model nch nmos tox='lmin+dw'
+.subckt leaf d g s b
+m1 d g s b nch w='w0+dw' l=lmin
+x1 d g s b leaf gain='w0-dw'
+.ends
+simulator lang=spectre
+parameters wp=1u wn=2u
+mp1 ( out in vdd vdd ) nch w=wp l='wn+dw'
+`;
+const paramRefModel = parseFile("paramrefs.sp", paramRefSrc);
+const m1 = paramRefModel.deviceInstances.find((d) => d.instanceName === "m1");
+const x1 = paramRefModel.xInstances.find((x) => x.instanceName === "x1");
+const nchModel = paramRefModel.modelDefs.get("nch");
+const mp1 = paramRefModel.xInstances.find((x) => x.instanceName === "mp1");
+ok("device param refs include quoted and bare values",
+  m1 && m1.paramRefs.some((r) => r.name === "w0") && m1.paramRefs.some((r) => r.name === "dw") && m1.paramRefs.some((r) => r.name === "lmin"));
+ok("x-instance param refs include expression values",
+  x1 && x1.paramRefs.some((r) => r.name === "w0") && x1.paramRefs.some((r) => r.name === "dw"));
+ok("model-card exprRefs include exact params",
+  nchModel && nchModel.exprRefs.some((r) => r.name === "lmin") && nchModel.exprRefs.some((r) => r.name === "dw"));
+ok("spectre instance param refs include bare and quoted values",
+  mp1 && mp1.paramRefs.some((r) => r.name === "wp") && mp1.paramRefs.some((r) => r.name === "wn") && mp1.paramRefs.some((r) => r.name === "dw"));
+
+function posOf(source, needle) {
+  const offset = source.indexOf(needle);
+  if (offset < 0) throw new Error("missing needle: " + needle);
+  const before = source.slice(0, offset);
+  const lines = before.split("\n");
+  return { line: lines.length - 1, character: lines[lines.length - 1].length };
+}
+const modelCardHit = tokenAtPosition(paramRefModel, posOf(paramRefSrc, "lmin+dw"));
+ok("tokenAtPosition returns paramRef inside model-card expression",
+  modelCardHit && modelCardHit.kind === "paramRef" && modelCardHit.name === "lmin");
+const deviceParamHit = tokenAtPosition(paramRefModel, posOf(paramRefSrc, "w0+dw"));
+ok("tokenAtPosition returns paramRef inside device param expression",
+  deviceParamHit && deviceParamHit.kind === "paramRef" && deviceParamHit.name === "w0");
+const xParamHit = tokenAtPosition(paramRefModel, posOf(paramRefSrc, "w0-dw"));
+ok("tokenAtPosition returns paramRef inside x-instance param expression",
+  xParamHit && xParamHit.kind === "paramRef" && xParamHit.name === "w0");
+const spectreParamHit = tokenAtPosition(paramRefModel, posOf(paramRefSrc, "wn+dw"));
+ok("tokenAtPosition returns paramRef inside spectre instance param expression",
+  spectreParamHit && spectreParamHit.kind === "paramRef" && spectreParamHit.name === "wn");
+
+const paramRefIndex = new SymbolIndex();
+paramRefIndex.indexLive("paramrefs.sp", paramRefSrc);
+const dwRefs = paramRefIndex.findParamRefs("dw");
+ok("findParamRefs returns param/model/device/x/spectre expression refs",
+  dwRefs.length >= 4 && dwRefs.every((r) => r.range.start.line === r.range.end.line));
 
 console.log("\nAll " + passed + " assertions passed.");

@@ -261,14 +261,30 @@ export class SymbolIndex {
     for (const model of this.allModels()) {
       for (const arr of model.paramDefs.values()) {
         for (const pd of arr) {
-          if (pd.varRefs?.includes(key)) {
+          const exactRefs = pd.exprRefs?.filter((ref) => ref.name === key) ?? [];
+          if (exactRefs.length) {
+            for (const ref of exactRefs) out.push({ filePath: pd.filePath, range: ref.range });
+          } else if (pd.varRefs?.includes(key)) {
             out.push({ filePath: pd.filePath, range: pd.valueRange });
           }
         }
       }
       for (const def of model.modelDefs.values()) {
-        if (def.exprVarRefs?.includes(key)) {
+        const exactRefs = def.exprRefs?.filter((ref) => ref.name === key) ?? [];
+        if (exactRefs.length) {
+          for (const ref of exactRefs) out.push({ filePath: def.filePath, range: ref.range });
+        } else if (def.exprVarRefs?.includes(key)) {
           out.push({ filePath: def.filePath, range: def.range });
+        }
+      }
+      for (const inst of model.xInstances) {
+        for (const ref of inst.paramRefs ?? []) {
+          if (ref.name === key) out.push({ filePath: inst.filePath, range: ref.range });
+        }
+      }
+      for (const dev of model.deviceInstances) {
+        for (const ref of dev.paramRefs ?? []) {
+          if (ref.name === key) out.push({ filePath: dev.filePath, range: ref.range });
         }
       }
     }

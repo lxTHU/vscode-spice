@@ -87,10 +87,11 @@ Name/value character offsets are mapped back to `(line, character)` ranges via
 - identifiers glued to a digit or `.` — strips the `e`/`E` exponent marker of
   scientific notation (e.g. `1.6e-08`) via a `(?<![\w.])` lookbehind.
 
-This is best-effort (see `docs/TODO.md`). Var refs are stored on `ParamDef` and
-on `ModelDef.exprVarRefs` (collected from `key='expr'` strings in model cards).
-A backfill pass recomputes `ParamDef.varRefs` once all `.func` names are known,
-so functions defined after a `.param` are still excluded.
+This is best-effort (see `docs/TODO.md`). Var refs are stored with exact ranges
+on `ParamDef`, `ModelDef`, `XInstance`, and `DeviceInstance` expression metadata
+(`.param` values, model-card `key='expr'` strings, and instance/device parameter
+expressions). A backfill pass recomputes `ParamDef.varRefs` once all `.func`
+names are known, so functions defined after a `.param` are still excluded.
 
 ### Section stack
 

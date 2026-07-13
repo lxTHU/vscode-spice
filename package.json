@@ -2,7 +2,7 @@
     "name": "spice",
     "displayName": "SPICE",
     "description": "SPICE/HSPICE/Spectre language support: syntax highlighting, code folding, snippets, and IDE-style netlist navigation (Go-to-Definition, Hover, References, Outline, .param/.section resolution). Both HSPICE and Spectre (.scs) are navigable.",
-    "version": "0.3.7",
+    "version": "0.3.8",
     "icon": "icon.png",
     "publisher": "xuanli",
     "author": {
