@@ -6,23 +6,26 @@ before tagging a release.
 ## Prerequisites
 
 - Node.js (for `tsc` / `vsce`)
-- Run once: `npm install` (installs `typescript`, `@types/vscode`, `@types/node`)
+- Run `npm ci` from the committed lockfile (installs the pinned release toolchain)
 - A Marketplace PAT only for the **publish** step (see [Publish](#publish) below).
 
 ## Build
 
 ```bash
-npm run compile        # tsc -p ./  → out/extension.js, out/parser.js, out/index.js
+npm ci                 # clean, reproducible dependency install
+npm run check          # compile + parser assertions
 ```
 
-The compiled `out/` directory is **git-ignored** (see `.gitignore`) and is
+`npm run compile` remains available for compile-only work. The compiled `out/`
+directory is **git-ignored** (see `.gitignore`) and is
 rebuilt by the `vscode:prepublish` script automatically. Never commit `out/`.
 
 - `npm run watch` — incremental recompile during development.
 
 ## Verify before release
 
-1. **Type-check / compile clean**: `npm run compile` exits 0 with no TS errors.
+1. **Automated gate**: `npm run check` exits 0 with no TS or parser-test
+   failures.
 2. **Smoke-test the parser** (no VS Code needed) against a real PDK if available:
    ```bash
    node -e 'const {parseFile}=require("./out/parser.js"); const fs=require("fs"); \
@@ -40,17 +43,22 @@ rebuilt by the `vscode:prepublish` script automatically. Never commit `out/`.
 ## Package
 
 ```bash
-npx @vscode/vsce package --no-dependencies --allow-missing-repository
+npm run package:vsix
+npm run package:contents
+sha256sum spice-*.vsix
 ```
 
 Produces `spice-<version>.vsix`. `--no-dependencies` is correct: the extension
 has **zero runtime npm dependencies** (only dev `@types/*` + `typescript`).
+VSCE is a pinned dev dependency; packaging never downloads an unreviewed
+`@latest` tool.
 
 The VSIX contents are governed by `.vscodeignore`:
 - **Shipped**: compiled extension runtime, language configuration, grammar,
   snippets, package metadata, and required Marketplace metadata.
 - **Excluded**: source/build inputs, tests, developer-only docs, dependency
-  directories, TypeScript sources, and generated VSIX archives.
+  directories, synchronization/release-evidence scripts, TypeScript sources,
+  and generated VSIX archives.
 
 To install a local VSIX for manual testing:
 `Extensions: Install from VSIX...` in VS Code, pick the file.
@@ -94,3 +102,7 @@ The Marketplace keeps previous versions; users can install an older VSIX via
 *Install from VSIX*. To yank a broken release, use the Marketplace management
 portal (unpublish is permanent for that version/name — prefer releasing a fix
 instead).
+
+Source synchronization and WT fast-forward procedures are documented in
+[SYNC.md](SYNC.md). GitHub is authoritative; generated dependencies and build
+outputs are rebuilt, never copied between machines.

@@ -17,10 +17,6 @@ either known design limits or lower-priority improvements.
   X/device/Spectre instance parameter expressions are indexed with exact ranges.
   Unknown simulator built-in functions may still be mis-classified. Affects
   reference completeness only, never jump correctness.
-- **`.param` value ranges across physical lines** (`+` continuation with an
-  expression split across lines) use single-line approximation in
-  `identifierAtOffset`; multi-line value expressions may not resolve the clicked
-  identifier.
 - **Scope resolution is structural, not numerical.** It identifies *which*
   `.LIB section` a definition lives in; it does **not** evaluate HSPICE
   expression substitution to compute the simulator-effective parameter values.
@@ -44,13 +40,9 @@ either known design limits or lower-priority improvements.
 - **Not indexed (by design):** `statistics` / `process` / `mismatch` Monte-Carlo
   blocks, `alter`, and testbench `analysis`/`save`/`print`/`plot` statements
   (matching the long-standing policy of not parsing `.measure`/`.data` semantics).
-- **2-node Spectre model-reference instances** (e.g. a diode model on
-  `dio ( a k ) ndio`) are dropped by the `minXInstanceNodes` filter (default 2)
-  and so do not offer a jump from that line. Widen via `ParseOptions` if needed.
 
 ## Build / release
 - `out/` is git-ignored and rebuilt by `vscode:prepublish`; ensure
   `npm run compile` succeeds before `vsce package`.
-- `package-lock.json` is intentionally git-ignored because the extension has no
-  runtime npm dependencies; revisit if reproducible dev dependency installs
-  become important.
+- `package-lock.json` pins the development and packaging toolchain. Runtime npm
+  dependencies remain zero.

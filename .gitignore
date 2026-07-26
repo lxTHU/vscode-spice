@@ -6,7 +6,6 @@
 # Node / build
 ###############################
 node_modules/
-package-lock.json
 yarn.lock
 # Compiled TypeScript output — rebuilt via `npm run compile` / `vscode:prepublish`
 out/

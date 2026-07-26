@@ -85,16 +85,22 @@ const rgate = m.deviceInstances.find((d) => d.instanceName === "rgate");
 ok("primitive resistor -> DeviceInstance", !!rgate && rgate.deviceType === "resistor");
 ok("primitive has no modelName (no spurious jump)", rgate && rgate.modelName === undefined);
 
-const dio = m.deviceInstances.find((d) => d.instanceName === "dio");
+const dio = m.xInstances.find((x) => x.instanceName === "dio");
 // A model-reference instance with ≥3 nodes is kept as an XInstance (navigable).
 const mn = m.xInstances.find((x) => x.instanceName === "mn");
 ok("model-ref instance mn -> XInstance (nch_rf not primitive)", !!mn);
 ok("mn target nch_rf", mn && mn.subcktName === "nch_rf");
 ok("mn 4 nodes", mn && mn.nodes.length === 4);
-// A model-reference instance with only 2 nodes (dio) is dropped by the
-// minXInstanceNodes gate (default 2), matching HSPICE X-instance behaviour.
-ok("2-node model-ref dio dropped by minXInstanceNodes gate",
-  !m.xInstances.find((x) => x.instanceName === "dio") && !m.deviceInstances.find((d) => d.instanceName === "dio"));
+// Spectre primitives are classified before the model-reference node gate, so a
+// legitimate 2-node diode model remains navigable without making a built-in
+// 2-node resistor into a false model jump.
+ok("2-node Spectre model-ref dio is navigable",
+  dio && dio.subcktName === "ndio_rf" && dio.nodes.length === 2);
+ok("2-node Spectre primitive remains a non-navigable device",
+  rgate && rgate.kind === "device" && rgate.deviceType === "resistor");
+const strictSpectre = parseFile("strict.scs", spectre, { minSpectreModelNodes: 3 });
+ok("minSpectreModelNodes can restore a 3-node minimum",
+  !strictSpectre.xInstances.some((x) => x.instanceName === "dio"));
 
 // ── 2. // comment stripping ────────────────────────────────────────────────
 const lines = preprocess("x.scs", "mp1 ( out in vdd ) nch w=1u // trailing comment\n");
@@ -137,6 +143,7 @@ mn1 d g s nm w=1u l=1u
 .INCLUDE 'inc.l'
 .subckt inv a b y c
 xa a b y c sub
+xshort a b sub
 .ends
 `;
 const hm = parseFile("h.cir", hsp);
@@ -147,6 +154,8 @@ ok("HSPICE .lib 'file' sec -> libRef", hm.libRefs.length === 1 && hm.libRefs[0].
 ok("HSPICE .INCLUDE indexed", hm.includes.length === 1 && hm.includes[0].path === "inc.l");
 ok("HSPICE mn1 not parsed as spectre instance (device by letter m)", hm.deviceInstances.some((d) => d.instanceName === "mn1"));
 ok("HSPICE xa X-instance present", hm.xInstances.some((x) => x.instanceName === "xa"));
+ok("HSPICE 2-node X-instance remains filtered",
+  !hm.xInstances.some((x) => x.instanceName === "xshort"));
 
 // ── 6. Expression identifier boundaries ────────────────────────────────────
 const boundaryExpr = "a-noiseflagn+b1fn*(abs(x)-noiseflagn)+1.6e-08+dl";
@@ -169,6 +178,27 @@ const boundaryChar = boundaryLine.indexOf("noiseflagn") + 1;
 const boundaryHit = tokenAtPosition(boundaryModel, { line: 1, character: boundaryChar });
 ok("tokenAtPosition returns paramRef at minus-adjacent identifier",
   boundaryHit && boundaryHit.kind === "paramRef" && boundaryHit.name === "noiseflagn");
+
+const multilineParamSrc =
+  ".param base=1 noiseflagn=2 delta=3\\n" +
+  ".param spread='base-noiseflagn+\\n" +
+  "+ delta+1.6e-08'\\n";
+const multilineParamModel = parseFile("multiline.sp", multilineParamSrc);
+const multilineHeadHit = tokenAtPosition(
+  multilineParamModel,
+  posOf(multilineParamSrc, "noiseflagn+"),
+);
+const multilineTailHit = tokenAtPosition(
+  multilineParamModel,
+  posOf(multilineParamSrc, "delta+1.6e-08"),
+);
+ok("multi-line .param head reference keeps its physical range",
+  multilineHeadHit && multilineHeadHit.kind === "paramRef" && multilineHeadHit.name === "noiseflagn");
+ok("multi-line .param continuation reference keeps its physical range",
+  multilineTailHit && multilineTailHit.kind === "paramRef" && multilineTailHit.name === "delta");
+const spread = multilineParamModel.paramDefs.get("spread")[0];
+ok("multi-line .param excludes the scientific exponent marker",
+  spread.exprRefs.some((r) => r.name === "delta") && !spread.exprRefs.some((r) => r.name === "e"));
 
 const wordPattern = JSON.parse(fs.readFileSync("language-configuration.json", "utf8")).wordPattern;
 function wordAt(text, offset) {

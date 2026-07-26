@@ -3,6 +3,27 @@ All notable changes to the "spice" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.3.9] - 2026-07-26
+### Added
+- Reproducible release tooling: the npm lockfile is now versioned, VSCE is
+  pinned as a development dependency, and `check` / `package:vsix` scripts make
+  the compile, parser-test, and package gates directly runnable.
+- GitHub Actions validates Node.js 20 and 24; a separate package job records the
+  VSIX file list and SHA-256 without publishing it.
+- Demand-research-backed roadmap with explicit criteria for the first `0.4.0`
+  capability release and later feature lines.
+
+### Changed
+- `@types/vscode` is pinned to 1.60.0 so the compile-time API surface matches
+  the declared VS Code `^1.60.0` compatibility floor.
+
+### Fixed
+- Spectre 2-node model references such as `dio (a k) ndio` are navigable.
+  Built-in 2-node primitives remain non-navigable, and HSPICE `X` filtering is
+  unchanged.
+- Multi-line `.param` expression references now have regression coverage for
+  exact physical-line ranges, operator-adjacent names, and scientific notation.
+
 ## [0.3.8] - 2026-07-13
 ### Fixed
 - **Parameter references are now indexed inside instance and device parameter

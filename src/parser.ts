@@ -684,6 +684,8 @@ export interface ParseOptions {
   indexedDeviceTypes?: Set<string>;
   /** X-instances with this many nodes or fewer are skipped. Default 2. */
   minXInstanceNodes?: number;
+  /** Spectre model/subckt instances with fewer nodes are skipped. Default 2. */
+  minSpectreModelNodes?: number;
 }
 
 export function emptyFileModel(filePath: string): FileModel {
@@ -905,6 +907,11 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
   // (3+ nodes — source/drain/gate, optionally bulk), which is the common
   // "wrap a primitive + parasitics into a callable device" pattern.
   const minXInstanceNodes = opts.minXInstanceNodes ?? 2;
+  // Spectre's `name (nodes) target` syntax distinguishes primitive targets
+  // before this gate, so legitimate 2-node model references (for example a
+  // diode model) can be kept without admitting built-in primitives as false
+  // navigation targets.
+  const minSpectreModelNodes = opts.minSpectreModelNodes ?? 2;
 
   const model = emptyFileModel(filePath);
   const lines = preprocess(source, filePath);
@@ -1141,7 +1148,7 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
     // Spectre instance: `name ( nodes... ) target params...`
     if (isSpectre && first.type === "identifier" && !isSpectreKeyword(first.text)) {
       const inst = parseSpectreInstance(ll, tokens, filePath, model.funcNames);
-      if (inst && inst.kind === "xinstance" && inst.nodes.length > minXInstanceNodes) {
+      if (inst && inst.kind === "xinstance" && inst.nodes.length >= minSpectreModelNodes) {
         model.xInstances.push(inst);
       } else if (inst && inst.kind === "device") {
         model.deviceInstances.push(inst);
