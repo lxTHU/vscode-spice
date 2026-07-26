@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(git -C "$script_dir/.." rev-parse --show-toplevel)"
+cd "$repo_root"
+
 mode="${1:-current}"
 if [[ "$mode" != "current" && "$mode" != "--history" ]]; then
   echo "usage: $0 [--history]" >&2
