@@ -19,6 +19,7 @@
 - [docs/SYNTAX.md](docs/SYNTAX.md) — SPICE/HSPICE vs Spectre dialect comparison & navigation matrix
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — navigation engine design (`.lib` dual syntax, `.param`/section scope, Spectre support)
 - [docs/RELEASE.md](docs/RELEASE.md) — build, package, and publish guide
+- [docs/ROADMAP.md](docs/ROADMAP.md) — demand evidence and versioned roadmap
 - [docs/TODO.md](docs/TODO.md) — known limitations and backlog
 
 # Features

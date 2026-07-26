@@ -2,7 +2,7 @@
     "name": "spice",
     "displayName": "SPICE",
     "description": "SPICE/HSPICE/Spectre language support: syntax highlighting, code folding, snippets, and IDE-style netlist navigation (Go-to-Definition, Hover, References, Outline, .param/.section resolution). Both HSPICE and Spectre (.scs) are navigable.",
-    "version": "0.3.8",
+    "version": "0.3.9",
     "icon": "icon.png",
     "publisher": "xuanli",
     "author": {
@@ -11,15 +11,14 @@
     },
     "copyright": "Copyright (c) 2022-2026 Xuan Li, Wiener Technology, Beijing",
     "homepage": "https://github.com/lxTHU/vscode-spice",
-	"repository": {
-        "type": "git",      
+    "repository": {
+        "type": "git",
         "url": "https://github.com/lxTHU/vscode-spice.git"
     },
-	"bugs": {
+    "bugs": {
         "url": "https://github.com/lxTHU/vscode-spice/issues"
     },
     "license": "MIT",
-
     "engines": {
         "vscode": "^1.60.0"
     },
@@ -29,12 +28,17 @@
     ],
     "scripts": {
         "compile": "tsc -p ./",
+        "test:parser": "node test/parser_spectre.test.js",
+        "check": "npm run compile && npm run test:parser",
+        "package:contents": "vsce ls",
+        "package:vsix": "npm run check && vsce package --no-dependencies --allow-missing-repository",
         "watch": "tsc -watch -p ./",
         "vscode:prepublish": "npm run compile"
     },
     "devDependencies": {
         "@types/node": "^18.0.0",
-        "@types/vscode": "^1.60.0",
+        "@types/vscode": "1.60.0",
+        "@vscode/vsce": "3.9.2",
         "typescript": "^5.0.0"
     },
     "categories": [
@@ -53,19 +57,38 @@
         "pdk",
         "snippets"
     ],
-
     "contributes": {
-        "languages": [{
-            "id": "spice",
-            "aliases": ["SPICE", "spice"],
-            "extensions": [".ckt",".sp",".net",".cir",".scs",".mod",".mdl",".lib",".sub",".lis",".dspf",".l"],
-            "configuration": "./language-configuration.json"
-        }],
-        "grammars": [{
-            "language": "spice",
-            "scopeName": "source.spice",
-            "path": "./syntaxes/SPICE.tmLanguage"
-        }],
+        "languages": [
+            {
+                "id": "spice",
+                "aliases": [
+                    "SPICE",
+                    "spice"
+                ],
+                "extensions": [
+                    ".ckt",
+                    ".sp",
+                    ".net",
+                    ".cir",
+                    ".scs",
+                    ".mod",
+                    ".mdl",
+                    ".lib",
+                    ".sub",
+                    ".lis",
+                    ".dspf",
+                    ".l"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "spice",
+                "scopeName": "source.spice",
+                "path": "./syntaxes/SPICE.tmLanguage"
+            }
+        ],
         "snippets": [
             {
                 "language": "spice",

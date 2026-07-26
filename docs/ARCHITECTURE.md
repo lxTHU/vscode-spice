@@ -109,9 +109,13 @@ Two `ParseOptions` control which instances are stored (memory vs. coverage):
   pattern of wrapping a primitive (MOSFET/BJT/diode) plus parasitics inside a
   `.subckt` — without them, model references in those bodies are not navigable.
   High-volume passives (`R`/`C`/`L`) are excluded by default.
-- **`minXInstanceNodes`** — `X`-instances with this many nodes or fewer are
+- **`minXInstanceNodes`** — HSPICE `X`-instances with this many nodes or fewer are
   skipped. Default 2: drops degenerate ≤2-node lines while keeping the minimum
   MOSFET-subckt case of 3+ nodes (source/drain/gate, optionally bulk).
+- **`minSpectreModelNodes`** — minimum node count for Spectre model/subckt
+  references. Default 2: keeps legitimate 2-node diode/model references.
+  Built-in Spectre primitives are classified separately and never become false
+  model jumps.
 
 Both are overridable for very large industrial netlists where memory matters.
 

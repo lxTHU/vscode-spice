@@ -175,10 +175,9 @@ pass.
 
 ## Known limits
 
-- A **2-node** Spectre instance that references a model (e.g. a diode model on
-  `dio ( a k ) ndio`) is dropped by the degenerate-instance filter
-  (`minXInstanceNodes`, default 2) and will not offer a jump from that line.
-  Widen it via `ParseOptions.minXInstanceNodes` if you need those.
+- Spectre model/subckt references require at least 2 nodes by default
+  (`minSpectreModelNodes`). A 2-node diode model such as `dio ( a k ) ndio` is
+  navigable, while built-in primitives remain non-navigable devices.
 - Variable-reference extraction inside expressions is best-effort (see
   `docs/TODO.md`); it affects reference completeness, never jump correctness.
 - `analysis` statements (`ac`, `tran`, `pss`, …) and testbench output commands

@@ -3,11 +3,14 @@
 # Source & build config (compiled output in out/ IS shipped)
 src/
 tsconfig.json
+package-lock.json
 **/*.ts
 node_modules/
 
 # Test / dev artifacts
 test/
+scripts/
+release-evidence/
 .vscode/
 *.sp
 *.md
@@ -16,6 +19,7 @@ test/
 
 # Version control
 .git/
+.github/
 .gitignore
 .gitattributes
 

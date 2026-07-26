@@ -1,0 +1,18 @@
+
+> spice@0.3.9 package:contents
+> vsce ls
+
+package.json
+language-configuration.json
+icon.png
+README.md
+LICENSE
+CHANGELOG.md
+syntaxes/SPICE.tmLanguage
+snippets/snippets_spectre.json
+snippets/snippets_sources.json
+snippets/snippets_meas.json
+snippets/snippets.json
+out/parser.js
+out/index.js
+out/extension.js

@@ -9,18 +9,19 @@ A VS Code extension (`publisher: xuanli`, single language id `spice`) providing 
 ## Commands
 
 ```bash
-npm install              # first time: typescript, @types/vscode, @types/node
+npm ci                   # clean install from the committed lockfile
 npm run compile          # tsc -p ./  → out/{extension,parser,index}.js  (strict mode)
+npm run check            # compile + parser assertions
+npm run package:vsix     # verified VSIX build with pinned VSCE
 npm run watch            # incremental recompile during dev
-node test/parser_spectre.test.js   # parser unit tests (no test framework; node assertions, run after compile)
-npx @vscode/vsce@latest package --no-dependencies --allow-missing-repository   # build VSIX
 ```
 
 - **Debug in VS Code**: F5 (`Launch Extension` config opens an Extension Host dev window with this extension loaded).
 - **Install a local build**: `code --install-extension spice-<version>.vsix` (then **restart VS Code** — icon + grammar are cached).
 - **Parser smoke-test on a real PDK** (no VS Code needed): `node -e 'const {parseFile}=require("./out/parser.js"); ...'` — see `docs/RELEASE.md` step 2.
 
-There is **no lint step** and **no test runner** — `test/parser_spectre.test.js` is a plain node script with inline assertions.
+There is **no lint step**. `test/parser_spectre.test.js` remains a plain Node.js
+assertion script and is wired into `npm run check` and CI.
 
 ## Architecture
 
