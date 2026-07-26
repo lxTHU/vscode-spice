@@ -8,8 +8,18 @@ permissions:
   contents: read
 
 jobs:
+  public-boundary:
+    name: Public boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: scripts/check-public-boundary.sh --history
+
   check:
     name: Check on Node ${{ matrix.node }}
+    needs: public-boundary
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
