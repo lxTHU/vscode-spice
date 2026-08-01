@@ -11,7 +11,7 @@ reading and writing netlists, not a simulator manual.
 | File extensions | `.ckt` `.sp` `.net` `.cir` `.mod` `.mdl` `.lib` `.sub` `.l` | `.scs` |
 | Statement keyword | leading **dot**: `.subckt`, `.model`, `.param`, `.lib` | **bare** keyword: `subckt`, `model`, `parameters`, `section` |
 | Line comment | `*` (full line), `$` / `;` (inline) | `//` (inline); `*` is *not* a comment in pure Spectre |
-| Continuation | `+` at start of next line | bare newline, or `{ ... }` block (real-world `.scs` also uses `+`) |
+| Continuation | `+` at start of next line | trailing `\`, `{ ... }` block, or `+` at the next line |
 | Instance form | `Xname nodes subckt` — name prefix letter, no parens | `name ( nodes ) target` — name first, nodes in parens, target after |
 | Subckt ports | after the name, bare | inside `( ... )` |
 | Case sensitivity | insensitive (HSPICE) | sensitive by default (`insensitive=yes` to switch) |
@@ -48,15 +48,20 @@ honoured too.
 + vth0=0.5
 ```
 
-**Spectre** joins either by bare newline or by a `{ … }` block:
+**Spectre** joins a line ending in `\` and also joins an open `{ … }` block:
 ```spectre
+X1 ( in \
+     mid \
+     out ) three_port
+
 model nch bsim4 {
   vth0=0.5
   u0=0.06
 }
 ```
-Many PDK `.scs` files use HSPICE-style `+` continuation inside `model` cards;
-both forms are supported and may be mixed.
+Some `.scs` files use HSPICE-style `+` continuation inside model cards; all
+three forms are supported and may be mixed. Continuation markers are removed
+without changing the physical ranges used by navigation.
 
 ## Instance statements (the big difference)
 
@@ -167,6 +172,8 @@ pass.
 | Go-to-Definition (`.param` / `parameters` variable) | ✅ | ✅ |
 | Hover (ports, model type, node terminal, param value) | ✅ | ✅ |
 | Find All References | ✅ | ✅ |
+| Scope-local net Highlight / Peek References | ✅ | ✅ |
+| Clickable formal-port Inlay Hints | ✅ | ✅ |
 | Outline (symbols nested under section) | ✅ | ✅ |
 | `.include` / `include` file links | ✅ (`.INCLUDE`/`.INC`) | ✅ (`include "f"`) |
 | `.lib`/`section` scope resolution | ✅ (`.LIB`/`.ENDL`) | ✅ (`section`/`endsection`) |
@@ -178,6 +185,11 @@ pass.
 - Spectre model/subckt references require at least 2 nodes by default
   (`minSpectreModelNodes`). A 2-node diode model such as `dio ( a k ) ndio` is
   navigable, while built-in primitives remain non-navigable devices.
+- Net connectivity is lexical in 0.4.0: current file top level or one subckt.
+  It does not merge includes, hierarchy levels, `0`, `.global`, or `global`.
+- Net lookup is case-insensitive in both dialects and retains original spelling.
+  Spectre case-only-distinct nets are therefore a known navigation limit even
+  when the simulator treats them as different names.
 - Variable-reference extraction inside expressions is best-effort (see
   `docs/TODO.md`); it affects reference completeness, never jump correctness.
 - `analysis` statements (`ac`, `tran`, `pss`, …) and testbench output commands

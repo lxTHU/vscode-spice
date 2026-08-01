@@ -1,27 +1,15 @@
 # Demand Research & Product Roadmap
 
-Snapshot date: 2026-07-26. This roadmap separates observed demand from feature
-ideas. Patch releases remain in `0.3.x`; `0.4.0` is reserved for the first
-coherent, clearly user-visible capability cluster.
+Snapshot date: 2026-08-01. This roadmap separates observed demand from feature
+ideas. Each minor line must remain a coherent, clearly user-visible workflow.
 
 ## Evidence
 
-- The [VS Code Marketplace listing](https://marketplace.visualstudio.com/items?itemName=xuanli.spice)
-  reports more than 50,000 installs. The public repository has 34 stars and 7
-  forks at this snapshot, but no open Issues. Sparse Issues therefore are not
-  sufficient evidence that users have no unmet needs.
-- Historical requests include
-  [Open VSX publication](https://github.com/lxTHU/vscode-spice/issues/7) and
-  [`.lis` recognition](https://github.com/lxTHU/vscode-spice/issues/8).
-  `.lis` is implemented. Open VSX was closed as not planned and should remain a
-  distribution decision, not silently become a code feature.
-- Three old pull requests remain open:
-  [DSPF TODO](https://github.com/lxTHU/vscode-spice/pull/5),
-  [subcircuit folding](https://github.com/lxTHU/vscode-spice/pull/6), and
-  [subcircuit/function folding](https://github.com/lxTHU/vscode-spice/pull/9).
-  They conflict with current `master`; file recognition and folding are already
-  covered by newer implementations. Close them only after a maintainer review,
-  with a pointer to the replacement behavior.
+- The direct 0.4.0 request is fast inspection of node connectivity without
+  leaving the editor or exposing netlists to an external service.
+- Existing Marketplace adoption shows that compatibility and low setup cost
+  matter, but adoption counts alone do not prove demand for any specific new
+  feature.
 - Comparable extensions expose useful demand signals:
   [vscode-spectre](https://marketplace.visualstudio.com/items?itemName=christian-parg.vscode-spectre)
   offers port-to-net inlay hints, semantic tokens, backslash continuations, and
@@ -48,58 +36,55 @@ large HSPICE/Spectre netlists without schematics.
 
 ## Proposed capability lines
 
-### 0.4.0 — Connectivity inspection
+### 0.4.0 — Scope-local connectivity inspection
 
-Candidate scope:
+Delivered scope:
 
-- port-to-net inlay hints for HSPICE and Spectre instances, default off for large
-  files and configurable per workspace;
-- Spectre `\` end-of-line continuation in the shared logical-line parser;
-- workspace symbol search across the existing include graph;
-- cancellation and a measured large-file latency budget for both providers.
+- native Document Highlight, Peek References, Hover, F12, and clickable
+  `formalPort:` Inlay Hints for a net in the current top level or current
+  subcircuit;
+- live-document-only `byLine` and `(scope, net)` indexes, including lightweight
+  endpoints for filtered X/R/C/L statements;
+- Spectre `\` end-of-line continuation with exact physical ranges;
+- cancellation and visible-range bounding for Inlay Hints;
+- generated HSPICE/Spectre regression and scale coverage.
 
-Acceptance gate:
+Explicitly excluded: Workspace Symbol, cross-file top-level nets, recursive
+hierarchy, global-net aggregation, a custom graph, Webview, or sidebar.
 
-- validate on one multi-file HSPICE fixture and one multi-file Spectre fixture;
-- no change to F12/Hover/References results with hints disabled;
-- no synchronous provider operation above 200 ms on the redacted large-PDK
-  benchmark;
-- at least one external user report, Issue, or maintainer-approved real workflow
-  confirming that inline connectivity or workspace search solves a recurring
-  task.
+### 0.5.0 — Workspace-scale navigation candidate
 
-### 0.5.0 — Large-netlist navigation workflow
+- Workspace Symbol over the existing include graph;
+- cancellable asynchronous scanning and bounded caches;
+- configurable file extensions and dialect override;
+- stronger cache invalidation than mtime alone.
 
-Candidate scope:
+Start only after two independent demand signals and a public generated fixture
+show a recurring workspace-scale task. Keep the in-process architecture unless
+reproducible synthetic benchmarks demonstrate that a worker is necessary.
 
-- scoped search inside an instance statement, subcircuit header, or body;
-- commands to jump to statement/body start and end;
-- configurable file extensions and dialect override for non-standard PDK files;
-- cache invalidation stronger than mtime-only, with bounded memory telemetry.
+### 0.6.0 — Root-aware connectivity candidate
 
-Start only after `0.4.x` usage shows repeated navigation friction that cannot be
-solved by native VS Code search. Preserve the in-process architecture unless
-benchmarks demonstrate that a worker or language server is necessary.
+- explicit root-netlist context;
+- `.global` / `global` and ground handling across the root plus one hierarchy
+  level;
+- deterministic ambiguity handling before any recursive expansion.
 
-### 0.6.0 — Authoring assistance, conditional
-
-Prototype snippets/completions and a PULSE/PWL editor only if direct user
-requests show that netlist creation—not inspection—is a primary workflow.
-Generated text must always be previewed before insertion and must not evaluate
-vendor model data.
-
-Running simulators, downloading binaries, parsing proprietary result formats,
-or numerical corner evaluation are outside this line. Each requires a separate
-security/data-handling design and stronger demand evidence.
+Start only after two independent requests and a root-selection design that
+cannot silently connect unrelated files. Full recursive connection graphs and
+authoring assistance remain later candidates.
 
 ## Research loop
 
 Before starting any minor line:
 
-1. Triage Issues, PRs, Marketplace reviews/Q&A, and internal redacted workflows.
+1. Triage Issues, PRs, Marketplace reviews/Q&A, and direct requests.
 2. Record the user task, dialect, file scale, and current workaround without
    collecting proprietary netlist content.
-3. Require two independent demand signals plus a reproducible redacted fixture.
+3. Require two independent demand signals plus a reproducible generated fixture.
 4. Publish the proposed acceptance tests in an Issue before implementation.
 5. Re-rank this roadmap after each Marketplace/Open VSX release and after every
    five substantive user reports.
+
+Private evaluation material, if used locally, is never uploaded. Public roadmap
+evidence contains only an anonymous task conclusion and generated reproduction.

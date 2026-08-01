@@ -22,6 +22,15 @@ either known design limits or lower-priority improvements.
   expression substitution to compute the simulator-effective parameter values.
 - **`.data`, `.measure`, Monte-Carlo / statistical semantics** are not parsed.
 - **Nested `.SUBCKT`** is unsupported (not valid HSPICE syntax).
+- **Four-terminal HSPICE Q syntax is inherently ambiguous.** A substrate node is
+  recognized when the following model is declared in the same file (before or
+  after the instance). If only an external model could disambiguate it, the
+  parser keeps the conservative three-node interpretation so a symbolic area is
+  never invented as a net.
+- **0.4.0 connectivity is intentionally lexical.** Top level and each subckt are
+  separate. Cross-include nets, recursive hierarchy, `.global` / `global`, and
+  special ground aggregation are deferred until a root-netlist context is
+  explicit and demand-supported.
 
 ## Performance / UX
 - The Outline for very large PDKs (thousands of symbols, hundreds of sections)
@@ -31,6 +40,11 @@ either known design limits or lower-priority improvements.
 - Disk-cache invalidation for include files is mtime-based; if an included file
   changes externally while closed, navigation may be stale until it is reopened
   or the includer is edited.
+- Workspace Symbol, cancellable asynchronous workspace scanning, dialect/file
+  configuration, and stronger invalidation are the 0.5.0 candidate cluster.
+- Root-aware global plus one-level connectivity is the 0.6.0 candidate. Full
+  recursive graphs remain later and require separate ambiguity/performance
+  evidence.
 
 ## HSPICE vs Spectre scope
 - Navigation supports **both** HSPICE and Spectre (`.scs`) as of 0.3.5 —
@@ -46,3 +60,5 @@ either known design limits or lower-priority improvements.
   `npm run compile` succeeds before `vsce package`.
 - `package-lock.json` pins the development and packaging toolchain. Runtime npm
   dependencies remain zero.
+- Public regression and release evidence must be generated/synthetic. Optional
+  private canaries must stay outside Git, CI, VSIX, logs, and published metrics.

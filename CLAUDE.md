@@ -10,33 +10,42 @@ A VS Code extension (`publisher: xuanli`, single language id `spice`) providing 
 
 ```bash
 npm ci                   # clean install from the committed lockfile
-npm run compile          # tsc -p ./  → out/{extension,parser,index}.js  (strict mode)
-npm run check            # compile + parser assertions
+npm run compile          # tsc -p ./ → out/*.js (strict mode)
+npm run check            # compile + all synthetic/public-boundary assertions
 npm run package:vsix     # verified VSIX build with pinned VSCE
 npm run watch            # incremental recompile during dev
 ```
 
 - **Debug in VS Code**: F5 (`Launch Extension` config opens an Extension Host dev window with this extension loaded).
 - **Install a local build**: `code --install-extension spice-<version>.vsix` (then **restart VS Code** — icon + grammar are cached).
-- **Parser smoke-test on a real PDK** (no VS Code needed): `node -e 'const {parseFile}=require("./out/parser.js"); ...'` — see `docs/RELEASE.md` step 2.
+- **Regression data**: committed tests and public evidence are generated or
+  synthetic only; see `docs/RELEASE.md`.
 
-There is **no lint step**. `test/parser_spectre.test.js` remains a plain Node.js
-assertion script and is wired into `npm run check` and CI.
+There is **no lint step**. Parser/connectivity tests are plain Node.js assertion
+scripts; the public-boundary test is Bash. All are wired into `npm run check`.
 
 ## Architecture
 
 The navigation engine is the non-obvious part. Read `docs/ARCHITECTURE.md` for the full design; the essentials:
 
-**Three files, one in-process pipeline** (no language server, no IPC):
+**Four files, one in-process pipeline** (no language server, no IPC):
 ```
 src/parser.ts    preprocess → tokenize → parseFile → FileModel
 src/index.ts     SymbolIndex: caches FileModels, resolves .INCLUDE graphs, section scope
-src/extension.ts registers 5 providers + diagnostics + 2 scope commands
+src/connectivity.ts pure formal-port/range/reference policies
+src/extension.ts registers 7 providers + diagnostics + 2 scope commands
 ```
 
-**The provider layer is dialect-agnostic.** Every provider (`Definition`/`Hover`/`References`/`DocumentSymbol`/`DocumentLink`) calls `tokenAtPosition(model, pos)` then `index.findXxx()`. They do not know or care whether the `FileModel` came from HSPICE or Spectre. **So: to add navigable constructs, extend `parser.ts` to populate the shared `FileModel`; do not touch provider logic.** `SymbolIndex` (`src/index.ts`) is also dialect-neutral and rarely needs changes.
+**The provider layer is dialect-agnostic.** Cursor providers resolve the shared
+`FileModel` through `tokenAtPosition` or the lexical connectivity index; symbol,
+link, highlight, and Inlay Hint providers consume the same parser/index model.
+They do not branch on HSPICE versus Spectre. Add syntax recognition in
+`parser.ts`, keep cross-file lookup in `index.ts`, and keep UI policy in the
+smallest applicable provider or pure `connectivity.ts` helper.
 
-**`FileModel` is the shared dialect-neutral container** — `subcktDefs` / `modelDefs` / `paramDefs` (multi-map) / `sectionDefs` / `includes` / `libRefs` / `xInstances` / `deviceInstances`. Both dialects populate the same structure.
+**`FileModel` is the shared dialect-neutral container** — `subcktDefs` /
+`modelDefs` / `paramDefs` / `sectionDefs` / includes / instances, plus optional
+live-document `connectivity`. Disk include models must not build connectivity.
 
 **Dialect is tracked per logical line**, not per file. `LogicalLine.dialect: "hspice" | "spectre"` is set in `preprocess` (initial value from `.scs` extension, then updated by `simulator lang=spectre|spice` directives). This lets a single mixed-dialect file parse correctly in one pass. `isHead(first, "subckt")` matches both `.subckt` (HSPICE) and `subckt` (Spectre) so one statement body serves both.
 
@@ -54,7 +63,8 @@ Folding is driven by `language-configuration.json` `folding.markers` (start/end 
 - **Spectre `{ }` blocks** (`model { … }`, `statistics { … }`, `if () { … }`) fold via balanced braces: start = line ending in `{` with no `{`/`}` earlier on the line; end = a line that is only `}`. Lines like `} value if () {` (open+close on one line) are deliberately matched by **neither** so the stack stays balanced. Spectre `model NAME diode` cards (no braces, single statement) are intentionally not foldable.
 - **`model`/`if`/`statistics` appear in both dialects with different closers**: HSPICE `.model`/`.if`/`.statistics` (closed by `+)` / `.endif`) vs Spectre bare `model`/`statistics`/`if` (closed by `}`). The start regex has a **dotted group** (HSPICE, `\.`-prefixed, all keywords) and a **dotless group** (Spectre, excludes `model`/`if`/`statistics` — those ride the `{ }` rule instead). Do not collapse them into one `\.?`-optional group; it corrupts the fold stack on Spectre files.
 
-When changing folding, verify with a stack-simulation script (see git history / `test/`) against a large `.scs` and a large `.l`: the stack must return to depth 0 at EOF on both, and HSPICE counts must match the pre-change baseline exactly.
+When changing folding, verify with generated `.scs` and `.l` samples: the stack
+must return to depth 0 at EOF and existing synthetic counts must remain stable.
 
 ## Snippets & highlighting
 
@@ -63,8 +73,12 @@ When changing folding, verify with a stack-simulation script (see git history / 
 
 ## Security constraints
 
-- `docs/internal/` is git-ignored and `.vscodeignore`d — it holds vendor/PDK-specific, commercially sensitive notes (e.g. `build_icon.py`, logo source). Never commit, package, or push it. The `icon.png` at repo root **is** public (ships in the VSIX).
-- **Public artifacts** (`src/` comments, `docs/*.md` except `internal/`, `README.md`, `CHANGELOG.md`) must never contain real PDK vendor names, process nodes, exact file names, or exact structural counts. Use generic labels ("PDK-A", "a high-voltage BCD process library").
+- `docs/internal/` is forbidden by the public-boundary gate. Never commit,
+  package, or push private notes, source material, screenshots, or logs. The
+  reviewed root `icon.png` is the only allowlisted binary.
+- **Public artifacts** must use generated/synthetic examples only. Never include
+  private hostnames, paths, domains/IPs, emails, source identities, netlists,
+  screenshots, raw logs, or private measurements—even in redacted form.
 - The Marketplace PAT is a secret — never committed, logged, or passed on a logged command line. Publishing is the only step that needs it (see `docs/RELEASE.md`).
 
 ## Docs map

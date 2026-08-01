@@ -52,7 +52,7 @@ endsection tt
 `;
 
 const m = parseFile("test.scs", spectre);
-console.log("PDK-A-like spectre sample:", {
+console.log("Synthetic Spectre sample:", {
   subckt: m.subcktDefs.size, model: m.modelDefs.size, param: m.paramDefs.size,
   section: m.sectionDefs.size, x: m.xInstances.length, dev: m.deviceInstances.length,
   inc: m.includes.length,

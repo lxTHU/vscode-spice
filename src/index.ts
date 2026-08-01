@@ -16,7 +16,11 @@ import {
   type ParamDef,
   type SectionDef,
   type Range,
+  type Pos,
+  type NetOccurrence,
   type ParseOptions,
+  netOccurrenceAtPosition,
+  netOccurrencesInScope,
 } from "./parser";
 
 /** Expand `$VAR` / `${VAR}` against the process environment. */
@@ -30,6 +34,11 @@ export function expandEnvVars(p: string): string {
 export function resolveInclude(includePath: string, fromFile: string): string {
   const fromDir = path.dirname(fromFile);
   return path.resolve(fromDir, expandEnvVars(includePath));
+}
+
+export interface ReachableDefinitionIndex {
+  subckts: Map<string, SubcktDef[]>;
+  models: Map<string, ModelDef[]>;
 }
 
 interface DiskCacheEntry {
@@ -48,13 +57,13 @@ export class SymbolIndex {
   private disk = new Map<string, DiskCacheEntry>();
 
   private parseOptions: ParseOptions = {
-    indexedDeviceTypes: new Set(["m", "q", "d", "v", "i", "e", "g", "f", "h"]),
+    indexedDeviceTypes: new Set(["m", "q", "d", "j", "s", "z", "v", "i", "e", "g", "f", "h"]),
     minXInstanceNodes: 2,
   };
 
   /** Index an open document's live text. */
   indexLive(filePath: string, source: string): FileModel {
-    const model = parseFile(filePath, source, this.parseOptions);
+    const model = parseFile(filePath, source, { ...this.parseOptions, indexConnectivity: true });
     this.live.set(filePath, model);
     // A live document supersedes any stale disk cache for the same path.
     this.disk.delete(filePath);
@@ -99,7 +108,7 @@ export class SymbolIndex {
     } catch {
       return undefined;
     }
-    const model = parseFile(filePath, text, this.parseOptions);
+    const model = parseFile(filePath, text, { ...this.parseOptions, indexConnectivity: false });
     this.disk.set(filePath, { model, mtimeMs: stat.mtimeMs });
     return model;
   }
@@ -113,8 +122,7 @@ export class SymbolIndex {
       const current = stack.pop()!;
       const model = this.getModel(current);
       if (!model) continue;
-      for (const inc of model.includes) {
-        const resolved = resolveInclude(inc.path, current);
+      for (const resolved of this.referencedFiles(model)) {
         if (visited.has(resolved)) continue;
         visited.add(resolved);
         // Reads from disk (or reuses live) via getModel; only crawl files not already live.
@@ -134,8 +142,7 @@ export class SymbolIndex {
       const current = stack.pop()!;
       const model = this.getModel(current);
       if (!model) continue;
-      for (const inc of model.includes) {
-        const resolved = resolveInclude(inc.path, current);
+      for (const resolved of this.referencedFiles(model)) {
         if (!result.has(resolved)) {
           result.add(resolved);
           stack.push(resolved);
@@ -199,6 +206,25 @@ export class SymbolIndex {
     return results;
   }
 
+  // ── Live-document lexical connectivity ───────────────────────────────────
+
+  /** Exact net occurrence under a cursor, only for an indexed live document. */
+  findNetOccurrence(filePath: string, pos: Pos): NetOccurrence | undefined {
+    const model = this.live.get(filePath);
+    return model ? netOccurrenceAtPosition(model, pos) : undefined;
+  }
+
+  /** Same-name occurrences inside the occurrence's file-local lexical scope. */
+  findNetOccurrences(filePath: string, scopeId: string, netName: string): NetOccurrence[] {
+    const model = this.live.get(filePath);
+    return model ? netOccurrencesInScope(model, scopeId, netName) : [];
+  }
+
+  /** Net occurrences starting on one physical line (for visible-range hints). */
+  netOccurrencesOnLine(filePath: string, line: number): NetOccurrence[] {
+    return this.live.get(filePath)?.connectivity?.byLine.get(line) ?? [];
+  }
+
   // ── Multi-definition lookups (sections / corners) ──────────────────────────
 
   /** All `.param` definitions for a name, across files and sections. */
@@ -228,10 +254,41 @@ export class SymbolIndex {
     const key = name.toLowerCase();
     const out: SubcktDef[] = [];
     for (const model of this.allModels()) {
-      const def = model.subcktDefs.get(key);
-      if (def) out.push(def);
+      out.push(...model.subcktDefList.filter((def) => def.name === key));
     }
     return out;
+  }
+
+  /** Subckt definitions reachable from one caller through include/library edges. */
+  findReachableSubcktDefs(name: string, fromFilePath: string): SubcktDef[] {
+    return this.buildReachableDefinitionIndex(fromFilePath)?.subckts.get(name.toLowerCase()) ?? [];
+  }
+
+  /** Build one caller-bounded definition snapshot, with cancellation checks. */
+  buildReachableDefinitionIndex(
+    fromFilePath: string,
+    isCancelled: () => boolean = () => false,
+  ): ReachableDefinitionIndex | undefined {
+    const paths = this.reachableFilePaths(fromFilePath, isCancelled);
+    if (!paths) return undefined;
+    const result: ReachableDefinitionIndex = { subckts: new Map(), models: new Map() };
+    const push = <T>(map: Map<string, T[]>, key: string, value: T): void => {
+      const values = map.get(key);
+      if (values) values.push(value);
+      else map.set(key, [value]);
+    };
+    for (const filePath of paths) {
+      if (isCancelled()) return undefined;
+      const model = this.getModel(filePath);
+      if (!model) continue;
+      for (const definition of model.subcktDefList) {
+        push(result.subckts, definition.name, definition);
+      }
+      for (const definition of model.modelDefs.values()) {
+        push(result.models, definition.name, definition);
+      }
+    }
+    return result;
   }
 
   /** Find a `.LIB section` definition by name (within the file or its include graph). */
@@ -338,6 +395,58 @@ export class SymbolIndex {
     if (uniq.length === 1) return { section: uniq[0], determined: true };
     if (uniq.length > 1) return { section: undefined, determined: false };
     return { section: undefined, determined: false };
+  }
+
+  /**
+   * Resolve a target library's section in the context of one caller/include
+   * graph. Unrelated open roots must never influence this result.
+   */
+  resolveScopeForReference(targetFilePath: string, fromFilePath: string): { section?: string; determined: boolean } {
+    const manual = this.manualScope.get(targetFilePath.toLowerCase());
+    if (manual) return { section: manual, determined: true };
+
+    const candidates: string[] = [];
+    for (const parentPath of this.transitiveIncludes(fromFilePath)) {
+      const parent = this.getModel(parentPath);
+      if (!parent) continue;
+      for (const reference of parent.libRefs) {
+        if (samePath(resolveInclude(reference.path, parent.filePath), targetFilePath) && reference.sectionName) {
+          candidates.push(reference.sectionName);
+        }
+      }
+    }
+    const unique = [...new Set(candidates.map((candidate) => candidate.toLowerCase()))];
+    if (unique.length === 1) return { section: unique[0], determined: true };
+    if (unique.length > 1) return { section: undefined, determined: false };
+    return { section: undefined, determined: false };
+  }
+
+  private referencedFiles(model: FileModel): string[] {
+    return [
+      ...model.includes.map((reference) => resolveInclude(reference.path, model.filePath)),
+      ...model.libRefs.map((reference) => resolveInclude(reference.path, model.filePath)),
+    ];
+  }
+
+  private reachableFilePaths(
+    filePath: string,
+    isCancelled: () => boolean,
+  ): Set<string> | undefined {
+    const result = new Set<string>([filePath]);
+    const stack = [filePath];
+    while (stack.length > 0) {
+      if (isCancelled()) return undefined;
+      const current = stack.pop()!;
+      const model = this.getModel(current);
+      if (!model) continue;
+      for (const referenced of this.referencedFiles(model)) {
+        if (!result.has(referenced)) {
+          result.add(referenced);
+          stack.push(referenced);
+        }
+      }
+    }
+    return result;
   }
 
   /** Iterate every model currently in the index (live + disk). */

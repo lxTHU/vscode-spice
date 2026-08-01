@@ -1,0 +1,19 @@
+# spice-0.4.0.vsix
+# size-bytes: 75286
+[Content_Types].xml
+extension.vsixmanifest
+extension/LICENSE.txt
+extension/changelog.md
+extension/icon.png
+extension/language-configuration.json
+extension/out/connectivity.js
+extension/out/extension.js
+extension/out/index.js
+extension/out/parser.js
+extension/package.json
+extension/readme.md
+extension/snippets/snippets.json
+extension/snippets/snippets_meas.json
+extension/snippets/snippets_sources.json
+extension/snippets/snippets_spectre.json
+extension/syntaxes/SPICE.tmLanguage
