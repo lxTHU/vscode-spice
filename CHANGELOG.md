@@ -3,6 +3,45 @@ All notable changes to the "spice" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.4.0] - 2026-08-01
+### Added
+- Scope-local net connectivity for the current top-level file body or current
+  subcircuit. VS Code's native Document Highlight, Peek References, Hover, and
+  Inlay Hints expose every same-name endpoint without a Webview or custom view.
+- Clickable `formalPort:` Inlay Hints for unambiguous, port-count-matched
+  subcircuit calls. Native language-level `editor.inlayHints.enabled` controls
+  visibility.
+- A live-document-only connectivity index. Disk-cached include models omit it,
+  while filtered short X calls and common passive devices still contribute
+  lightweight endpoints in open documents.
+- Synthetic connectivity, continuation, scope-isolation, reference-context,
+  hint-range/cancellation, and large-generated-netlist regression coverage.
+- Staged-tree privacy scanning and exact VSIX runtime-content verification.
+
+### Changed
+- Minimum VS Code is now 1.67.0; `@types/vscode` is pinned to the same API
+  level. Exact dependency overrides plus `engine-strict` keep the VSCE toolchain
+  installable on both Node 20 and Node 24 CI lanes.
+- Net Hover reports scope, endpoint count, and the current endpoint mapping.
+  Shift+F12 on a net now lists endpoints in that lexical scope. F12 on an X
+  actual node continues to resolve its positional formal port.
+- The release workflow validates generated/synthetic public evidence only and
+  packages on Node 24 while compile/test CI continues on Node 20 and 24. GitHub
+  Actions are pinned to reviewed immutable commits.
+
+### Fixed
+- Spectre end-of-line `\\` continuations now share the physical-offset mapping
+  used by tokenization and expression ranges.
+- Four-terminal HSPICE BJT substrate nodes participate in connectivity when a
+  same-file model declaration disambiguates the syntax, regardless of
+  declaration order. X calls with spaced `name = value` parameters retain the
+  correct target.
+- J/S/Z/W/T positional-node boundaries are covered, and a reachable
+  model/subckt name collision no longer produces a misleading formal-port jump
+  or Inlay Hint.
+- Closing a document cancels its pending debounced reindex, preventing a closed
+  file from being restored to the live connectivity cache.
+
 ## [0.3.9] - 2026-07-26
 ### Added
 - Reproducible release tooling: the npm lockfile is now versioned, VSCE is
@@ -68,9 +107,9 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
   `subckt` / `inline subckt` / `model` / `parameters` / `section` / `library` /
   `include` definitions are indexed; instances in the `name ( nodes ) target`
   form are navigated (subckt/model references jump; built-in primitive types such
-  as `resistor` / `mosfet` are recognised as non-navigable). Tested on real PDK
-  model libraries of varying structure; please report any construct that
-  mis-parses.
+  as `resistor` / `mosfet` are recognised as non-navigable). Regression coverage
+  uses synthetic model libraries of varying structure; please report any
+  construct that mis-parses.
 - **Mixed-dialect files.** `simulator lang=spectre` / `simulator lang=spice`
   directives are tracked per logical line, so a file that switches dialect
   mid-stream is parsed in the right dialect for each statement in a single pass.

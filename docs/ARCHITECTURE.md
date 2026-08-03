@@ -1,10 +1,10 @@
 # Navigation Engine — Architecture & Design
 
-The netlist-navigation engine (added in 0.3.0, extended in 0.3.1/0.3.2, Spectre
-support in 0.3.5) gives the extension IDE-style Go-to-Definition / Hover /
-References / Outline / Diagnostics for **both HSPICE and Spectre (`.scs`)**
-netlists. This document captures the architecture and the non-obvious design
-decisions so future contributors don't re-derive them.
+The netlist-navigation engine (added in 0.3.0, Spectre support in 0.3.5, scoped
+connectivity in 0.4.0) gives the extension IDE-style Go-to-Definition / Hover /
+References / Highlight / Inlay Hints / Outline / Diagnostics for **both HSPICE
+and Spectre (`.scs`)** netlists. This document captures the architecture and the
+non-obvious design decisions so future contributors don't re-derive them.
 
 ## High-level design
 
@@ -16,8 +16,9 @@ process, no IPC). Providers are registered with the standard
 ```
 src/parser.ts    preprocess → tokenize → parseFile  →  FileModel
 src/index.ts     SymbolIndex: caches FileModels, resolves .INCLUDE graphs,
-                  answers subckt/model/param/section lookups + scope
-src/extension.ts registers 6 providers + diagnostics + scope commands,
+                  answers symbol lookups + live lexical-net lookups
+src/connectivity.ts pure formal-port/range/reference policy helpers
+src/extension.ts registers 7 providers + diagnostics + scope commands,
                   converts internal {line,col} ↔ vscode.Position
 ```
 
@@ -37,10 +38,11 @@ simpler, has one fewer failure mode, and keeps the extension dependency-free.
 
 `parseFile(filePath, source, opts)` does three things in one pass (O(n)):
 
-1. **`preprocess`** — normalizes newlines, joins HSPICE `+` continuation lines,
-   strips inline comments (`$`, `;`) outside quotes, drops blank lines and `*`
-   full-line comments. Spectre branches and `simulator lang=` switching are
-   **removed** (HSPICE-only).
+1. **`preprocess`** — normalizes newlines, joins HSPICE `+`, Spectre trailing
+   `\\`, and open `{ ... }` continuations, strips inline comments outside
+   quotes, drops blank/full-line comments, and tracks `simulator lang=` per
+   logical statement. The same normalization is reused by token and offset
+   mapping so physical ranges remain exact.
 2. **`tokenize`** — splits each logical line into tokens classified as
    `dot-command` / `param` (`key=value`) / `number` / `identifier` / `string`.
 3. **statement dispatch** — `.SUBCKT`/`.ENDS`, `.MODEL`, `.param`, `.LIB`,
@@ -102,13 +104,14 @@ malformed/partial files).
 
 ### Instance indexing strategy
 
-Two `ParseOptions` control which instances are stored (memory vs. coverage):
+Three `ParseOptions` control which instances are stored or indexed (memory vs.
+coverage):
 
-- **`indexedDeviceTypes`** — device letters whose instances are parsed. Defaults
-  to `M Q D V I E G F H`. Including `M`/`Q`/`D` is essential for the common
+- **`indexedDeviceTypes`** — device letters whose full instances are retained. Defaults
+  to `M Q D J S Z V I E G F H`. Including modeled devices is essential for the common
   pattern of wrapping a primitive (MOSFET/BJT/diode) plus parasitics inside a
   `.subckt` — without them, model references in those bodies are not navigable.
-  High-volume passives (`R`/`C`/`L`) are excluded by default.
+  High-volume passives (`R`/`C`/`L`) are excluded from full retention by default.
 - **`minXInstanceNodes`** — HSPICE `X`-instances with this many nodes or fewer are
   skipped. Default 2: drops degenerate ≤2-node lines while keeping the minimum
   MOSFET-subckt case of 3+ nodes (source/drain/gate, optionally bulk).
@@ -116,15 +119,45 @@ Two `ParseOptions` control which instances are stored (memory vs. coverage):
   references. Default 2: keeps legitimate 2-node diode/model references.
   Built-in Spectre primitives are classified separately and never become false
   model jumps.
+- **`indexConnectivity`** — builds the lexical net index for an open document.
+  It defaults off and is forced off for disk include-cache models.
 
-Both are overridable for very large industrial netlists where memory matters.
+The retention filters are overridable. Connectivity is deliberately independent
+of them: an open document records lightweight endpoints for recognized X and
+device statements before the full-instance retention gate, so R/C/L and short X
+calls remain inspectable without expanding the disk cache.
+
+### Lexical connectivity model (0.4.0)
+
+`FileModel.connectivity` is optional and has two maps:
+
+- `byLine`: exact physical-line occurrences for cursor hits and visible-range
+  Inlay Hints;
+- `byScopeAndName`: scope id → lowercased net name → occurrences, for O(1)
+  same-net lookup.
+
+A `NetOccurrence` preserves the source spelling/range and points to a
+`NetEndpoint` (subckt header port, X actual port, or primitive device terminal).
+`NetScope` is either file top level or one specific subckt definition. Its id
+includes the definition position, so two same-named definitions do not merge.
+
+This is not a hierarchy graph. Same-name nets in other files/subcircuits are not
+connected, and `0`, `.global`, and Spectre `global` receive no special
+cross-scope semantics in 0.4.0. X-node F12 and Inlay labels may reuse the
+existing subckt-definition resolver to name the positional formal port; that
+does not broaden the set returned by net Highlight or References.
+
+Both dialects use lowercased lookup keys while retaining source spelling and
+ranges. This is an intentional 0.4.0 navigation rule; Spectre case-only-distinct
+nets are a documented limit rather than simulator-equivalence semantics.
 
 ## Symbol index (`src/index.ts`)
 
 `SymbolIndex` holds two caches:
-- **`live`** — FileModels from open editors (re-parsed on change, debounced).
+- **`live`** — FileModels from open editors (re-parsed on change, debounced),
+  with connectivity enabled.
 - **`disk`** — FileModels for include files not open, keyed by absolute path,
-  invalidated by `mtime`.
+  invalidated by `mtime`, with connectivity disabled.
 
 `getModel(path)` prefers live, else reads disk (caching). `indexWithIncludes`
 recursively follows `.INCLUDE`/`.INC`/`.LIB`-reference edges, with a visited set
@@ -163,7 +196,9 @@ numerical HSPICE corner evaluation — see `docs/TODO.md`.
 | `DocumentSymbolProvider` | Hierarchical: `.LIB section` (Namespace) → nested model/subckt/param. |
 | `DefinitionProvider` | Multi-result → native Peek picker. Scope-aware via `scopedDefs`. Has a word-under-cursor fallback for unmarked tokens. |
 | `HoverProvider` | subckt ports, model type, node→port/terminal, param value(s), resolved env vars on `.INCLUDE`/`.lib` paths. |
-| `ReferenceProvider` | subckt/model instances; param expression references (via `findParamRefs`). |
+| `ReferenceProvider` | subckt/model instances; param expression references; same-scope net endpoints on a net token. |
+| `DocumentHighlightProvider` | same-file, same-scope occurrences of the net under the cursor. |
+| `InlayHintsProvider` | visible-range-only clickable formal-port labels for unique, count-matched X calls; one caller-bounded definition snapshot per request, cancellation-aware. |
 | `DocumentLinkProvider` | `.INCLUDE`/`.INC` and `.lib 'file'` paths → clickable file links. |
 | Diagnostics | Unknown subckt + port-count mismatch (X-instances only; `.param` is not diagnosed). |
 
@@ -194,10 +229,17 @@ no `.param`/section concept.
 
 ## Performance & robustness
 
-Single-pass O(n) parsing with bounded in-memory indexing. Re-parse on edit is debounced (300 ms).
-Include-graph crawling is on-demand with mtime-cached disk reads.
+Single-pass O(n) parsing with bounded in-memory indexing. Re-parse on edit is
+debounced (300 ms); closing a document cancels its pending timer. Include-graph
+crawling is on-demand with mtime-cached disk reads. Net fanout lookup is O(1)
+before returning the endpoints. Inlay Hints touch only requested lines, build
+one caller-bounded definition snapshot, and cache target/scope resolution for
+the request. A reachable model/subckt name collision deliberately yields no
+formal-port hint or jump.
 
-Validation uses synthetic and redacted netlist corpora; dataset-specific identities and measurements are not published.
+Committed validation and public release evidence use generated/synthetic
+netlists only. Optional private local canaries remain outside Git, CI, VSIX, and
+published performance evidence.
 
 MOSFET/BJT/diode model references inside `.subckt` bodies are navigable
 (`M`/`Q`/`D` indexed by default since 0.3.3).
@@ -221,7 +263,7 @@ This makes a mixed-dialect file parse correctly in one pass.
 - Parentheses `(` / `)` are emitted as standalone tokens so Spectre's
   `name ( nodes ) target` instance form and `subckt NAME ( ports )` definitions
   are positional. `{` / `}` are separators only.
-- After `+` continuation joining, an open `{ … }` block is extended line-by-line.
+- `+`, trailing `\\`, and open `{ … }` continuations are joined line-by-line.
   Brace depth is tracked **incrementally** (`braceDelta` scans only the newly
   joined line, never the growing whole string) with a per-statement cap of 4000
   lines as a safety valve against an unclosed `{`. This is what keeps large
@@ -257,4 +299,5 @@ statements (`ac`/`dc`/`tran`/`save`/`print`/…).
 e.g. `mosfet → [d,g,s,b]`); the `nodeInDevice` hover looks it up first, falling
 back to the HSPICE-letter `DEVICE_TERMINALS`, then `term{i}`.
 
-Validation uses synthetic and redacted Spectre corpora; dataset-specific identities and measurements are not published.
+Validation uses synthetic Spectre corpora; private source material and
+dataset-specific measurements are not published.

@@ -153,9 +153,66 @@ export interface DeviceInstance {
   filePath: string;
 }
 
+/** Lexical electrical scope for a net occurrence. */
+export interface NetScope {
+  /** Stable only for the lifetime of this parsed FileModel. */
+  id: string;
+  kind: "top" | "subckt";
+  /** Lowercased subcircuit name for a subckt-local scope. */
+  subcktName?: string;
+  /** Original spelling used for display. */
+  originalSubcktName?: string;
+}
+
+/** The statement endpoint attached to a net token. */
+export type NetEndpoint =
+  | {
+      kind: "port";
+      subcktName: string;
+      originalSubcktName: string;
+      portIndex: number;
+    }
+  | {
+      kind: "xinstance";
+      instanceName: string;
+      originalInstanceName: string;
+      targetName: string;
+      originalTargetName: string;
+      nodeIndex: number;
+      nodeCount: number;
+    }
+  | {
+      kind: "device";
+      instanceName: string;
+      originalInstanceName: string;
+      deviceType: string;
+      nodeIndex: number;
+    };
+
+/** One exact physical token that participates in a lexical net. */
+export interface NetOccurrence {
+  name: string;
+  originalName: string;
+  range: Range;
+  filePath: string;
+  scope: NetScope;
+  endpoint: NetEndpoint;
+}
+
+/**
+ * Lightweight live-document connectivity index. Occurrences are referenced by
+ * both maps rather than duplicated. Disk-only include models omit this index.
+ */
+export interface ConnectivityIndex {
+  byLine: Map<number, NetOccurrence[]>;
+  byScopeAndName: Map<string, Map<string, NetOccurrence[]>>;
+}
+
 export interface FileModel {
   filePath: string;
   subcktDefs: Map<string, SubcktDef>;
+  /** Every subckt definition, including same-name definitions in sections. */
+  subcktDefList: SubcktDef[];
   modelDefs: Map<string, ModelDef>;
   xInstances: XInstance[];
   deviceInstances: DeviceInstance[];
@@ -168,6 +225,8 @@ export interface FileModel {
   libRefs: LibRef[];
   /** `.func` / user function names (lowercased) — excluded from variable refs. */
   funcNames: Set<string>;
+  /** Present only when ParseOptions.indexConnectivity is enabled. */
+  connectivity?: ConnectivityIndex;
 }
 
 export type Definition = SubcktDef | ModelDef | ParamDef | SectionDef;
@@ -224,8 +283,34 @@ function braceDelta(s: string): number {
 }
 
 /**
- * Split raw source into logical statements: join `+` continuations, join open
- * `{ ... }` blocks, strip inline comments, drop blank and `*` full-line
+ * Remove a Spectre end-of-line `\\` continuation marker when it is the last
+ * non-whitespace character outside quotes. The returned text keeps every
+ * preceding character in its original column so physical token ranges remain
+ * exact.
+ */
+function stripSpectreContinuation(line: string, dialect: "hspice" | "spectre"): { text: string; continues: boolean } {
+  if (dialect !== "spectre") return { text: line, continues: false };
+
+  let end = line.length - 1;
+  while (end >= 0 && /\s/.test(line[end])) end--;
+  if (end < 0 || line[end] !== "\\") return { text: line, continues: false };
+
+  let quote: "'" | '"' | undefined;
+  for (let i = 0; i < end; i++) {
+    const ch = line[i];
+    if (ch !== "'" && ch !== '"') continue;
+    if (i > 0 && line[i - 1] === "\\") continue;
+    if (!quote) quote = ch;
+    else if (quote === ch) quote = undefined;
+  }
+  if (quote) return { text: line, continues: false };
+  return { text: line.slice(0, end) + line.slice(end + 1), continues: true };
+}
+
+/**
+ * Split raw source into logical statements: join `+` continuations, Spectre
+ * end-of-line `\\` continuations, and open `{ ... }` blocks; strip inline
+ * comments; drop blank and `*` full-line
  * comments. Each logical line is tagged with its dialect (hspice/spectre),
  * tracked per-line from `simulator lang=` directives (initial value from the
  * file extension).
@@ -244,35 +329,32 @@ export function preprocess(source: string, filePath: string): LogicalLine[] {
     }
     const startLineIdx = i;
     const physLines = [raw];
-    let joined = stripInlineComment(raw).trim();
+    const firstFragment = stripSpectreContinuation(stripInlineComment(raw), currentLang);
+    let joined = firstFragment.text.trim();
+    let slashContinues = firstFragment.continues;
     let depth = braceDelta(joined);
     i++;
-    // Join HSPICE `+` continuation lines.
-    while (i < physical.length) {
+    // Join explicit and brace-driven continuations in a single pass. The cap
+    // prevents malformed input from swallowing the rest of a large netlist.
+    let continuationRun = 0;
+    const CONTINUATION_RUN_MAX = 4000;
+    while (i < physical.length && continuationRun < CONTINUATION_RUN_MAX) {
       const nextRaw = physical[i];
-      if (nextRaw.trim().startsWith("+")) {
-        physLines.push(nextRaw);
-        const afterPlus = stripInlineComment(nextRaw).trimStart().slice(1).trim();
-        joined += " " + afterPlus;
-        depth += braceDelta(afterPlus);
-        i++;
-      } else {
-        break;
-      }
-    }
-    // Join Spectre `{ ... }` block continuations (only while a `{` is still
-    // open). Depth is tracked incrementally — we only scan each newly joined
-    // line, never the growing `joined` whole, to stay O(n). A per-statement
-    // line cap guards against a stray/unclosed `{` swallowing the whole file.
-    let braceRun = 0;
-    const BRACE_RUN_MAX = 4000;
-    while (i < physical.length && depth > 0 && braceRun < BRACE_RUN_MAX) {
-      const nextRaw = physical[i];
+      const plusContinues = nextRaw.trimStart().startsWith("+");
+      if (!plusContinues && !slashContinues && depth <= 0) break;
+
       physLines.push(nextRaw);
-      const nxt = stripInlineComment(nextRaw).trim();
+      let nextText = stripInlineComment(nextRaw);
+      if (plusContinues) {
+        const plusAt = nextText.search(/\S/);
+        nextText = plusAt >= 0 ? nextText.slice(0, plusAt) + nextText.slice(plusAt + 1) : nextText;
+      }
+      const fragment = stripSpectreContinuation(nextText, currentLang);
+      const nxt = fragment.text.trim();
       joined += " " + nxt;
       depth += braceDelta(nxt);
-      braceRun++;
+      slashContinues = fragment.continues;
+      continuationRun++;
       i++;
     }
     // Safety: if a `{` was never closed (malformed/truncated file), stop after
@@ -315,13 +397,13 @@ function classifyToken(raw: string, line: number, character: number): Token {
   return { text: lower, originalText: raw, line, character, type: "identifier" };
 }
 
-/** Tokenize a logical line across its physical lines (handles `+` prefix on continuation lines). */
+/** Tokenize a logical line across its physical lines (handles continuation markers). */
 export function tokenize(ll: LogicalLine): Token[] {
   const tokens: Token[] = [];
   for (let physIdx = 0; physIdx < ll.physicalLines.length; physIdx++) {
     const physLine = ll.physicalLines[physIdx];
     const lineNum = ll.lineNumber + physIdx;
-    const stripped = stripInlineComment(physLine);
+    const stripped = stripSpectreContinuation(stripInlineComment(physLine), ll.dialect).text;
     let pos = 0;
     if (physIdx > 0) {
       while (pos < stripped.length && /\s/.test(stripped[pos])) pos++;
@@ -424,7 +506,7 @@ function extractPorts(tokens: Token[], isSpectre: boolean): Token[] {
     const parens = tokensInsideParens(tokens);
     return parens ? parens.inner : [];
   }
-  return positional(tokens);
+  return xPositionals(tokens);
 }
 
 /**
@@ -443,6 +525,19 @@ function extractParams(tokens: Token[]): Map<string, string> {
     }
   }
   return map;
+}
+
+/** Positional portion of an HSPICE X call, stopping before either param syntax. */
+function xPositionals(tokens: Token[]): Token[] {
+  const out: Token[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (token.type === "param" || token.text === "params:") break;
+    // Tolerate `name = value` as well as the canonical `name=value` spelling.
+    if (tokens[i + 1]?.originalText === "=") break;
+    out.push(token);
+  }
+  return positional(out);
 }
 
 function singleLineRange(line: number, start: number, end: number): Range {
@@ -503,13 +598,13 @@ function rawPathText(tok: Token): string {
 const DEVICE_NODE_COUNTS: Record<string, number> = {
   r: 2, c: 2, l: 2, m: 4, q: 3, d: 2,
   v: 2, i: 2, e: 4, g: 4, f: 2, h: 2,
-  b: 2, t: 4, u: 2, w: 2, z: 2,
+  b: 2, j: 3, s: 4, t: 4, u: 2, w: 2, z: 3,
 };
 
 const DEVICE_TYPES = new Set(Object.keys(DEVICE_NODE_COUNTS));
 
 /** Devices whose token after the node list is a model reference. */
-const MODELED_DEVICES = new Set(["m", "q", "d"]);
+const MODELED_DEVICES = new Set(["m", "q", "d", "j", "s", "z"]);
 
 /**
  * Spectre built-in primitive type names. An instance whose target token (after
@@ -556,7 +651,7 @@ function parseXInstance(ll: LogicalLine, tokens: Token[], filePath: string, extr
   if (tokens.length < 3) return null;
   const instanceTok = tokens[0];
   const rest = tokens.slice(1);
-  const posToks = positional(rest);
+  const posToks = xPositionals(rest);
   if (posToks.length < 2) return null;
   const subcktTok = posToks[posToks.length - 1];
   const nodeToks = posToks.slice(0, -1);
@@ -577,13 +672,28 @@ function parseXInstance(ll: LogicalLine, tokens: Token[], filePath: string, extr
   };
 }
 
-function parseDeviceInstance(ll: LogicalLine, tokens: Token[], filePath: string, extraFuncs?: Set<string>): DeviceInstance | null {
+function parseDeviceInstance(
+  ll: LogicalLine,
+  tokens: Token[],
+  filePath: string,
+  extraFuncs?: Set<string>,
+  knownModels?: ReadonlySet<string>,
+): DeviceInstance | null {
   if (tokens.length < 2) return null;
   const instanceTok = tokens[0];
   const devType = instanceTok.text[0];
   const rest = tokens.slice(1);
   const posToks = positional(rest);
-  const nodeCount = DEVICE_NODE_COUNTS[devType] ?? 2;
+  // HSPICE BJT syntax is ambiguous: the fifth positional token can be either a
+  // fourth substrate node's model or a symbolic area after a 3-node model.
+  // Expand to four nodes only when the already-declared model table proves the
+  // fifth token is the model and the fourth is not. Otherwise preserve the
+  // conservative legacy 3-node interpretation.
+  const threeNodeModel = posToks[3];
+  const fourNodeModel = posToks[4];
+  const qHasSubstrate = devType === "q" && !!threeNodeModel && !!fourNodeModel &&
+    !knownModels?.has(threeNodeModel.text) && knownModels?.has(fourNodeModel.text) === true;
+  const nodeCount = qHasSubstrate ? 4 : (DEVICE_NODE_COUNTS[devType] ?? 2);
   const nodeToks = posToks.slice(0, nodeCount);
   let modelName: string | undefined;
   let modelNameRange: Range | undefined;
@@ -686,12 +796,69 @@ export interface ParseOptions {
   minXInstanceNodes?: number;
   /** Spectre model/subckt instances with fewer nodes are skipped. Default 2. */
   minSpectreModelNodes?: number;
+  /** Build a lexical net index for this file. Disabled for disk include caches. */
+  indexConnectivity?: boolean;
+}
+
+function pushNetOccurrence(connectivity: ConnectivityIndex | undefined, occurrence: NetOccurrence): void {
+  if (!connectivity) return;
+  const lineOccurrences = connectivity.byLine.get(occurrence.range.start.line);
+  if (lineOccurrences) lineOccurrences.push(occurrence);
+  else connectivity.byLine.set(occurrence.range.start.line, [occurrence]);
+
+  let byName = connectivity.byScopeAndName.get(occurrence.scope.id);
+  if (!byName) {
+    byName = new Map<string, NetOccurrence[]>();
+    connectivity.byScopeAndName.set(occurrence.scope.id, byName);
+  }
+  const sameNet = byName.get(occurrence.name);
+  if (sameNet) sameNet.push(occurrence);
+  else byName.set(occurrence.name, [occurrence]);
+}
+
+function indexInstanceNodes(
+  connectivity: ConnectivityIndex | undefined,
+  scope: NetScope,
+  instance: XInstance | DeviceInstance,
+  physicalSource: string[] | undefined,
+): void {
+  if (!connectivity) return;
+  for (let nodeIndex = 0; nodeIndex < instance.nodes.length; nodeIndex++) {
+    const range = instance.nodeRanges[nodeIndex];
+    if (!range) continue;
+    const endpoint: NetEndpoint = instance.kind === "xinstance"
+      ? {
+          kind: "xinstance",
+          instanceName: instance.instanceName,
+          originalInstanceName: instance.originalInstanceName,
+          targetName: instance.subcktName,
+          originalTargetName: instance.originalSubcktName,
+          nodeIndex,
+          nodeCount: instance.nodes.length,
+        }
+      : {
+          kind: "device",
+          instanceName: instance.instanceName,
+          originalInstanceName: instance.originalInstanceName,
+          deviceType: instance.deviceType,
+          nodeIndex,
+        };
+    pushNetOccurrence(connectivity, {
+      name: instance.nodes[nodeIndex],
+      originalName: physicalSource?.[range.start.line]?.slice(range.start.character, range.end.character) ?? instance.nodes[nodeIndex],
+      range,
+      filePath: instance.filePath,
+      scope,
+      endpoint,
+    });
+  }
 }
 
 export function emptyFileModel(filePath: string): FileModel {
   return {
     filePath,
     subcktDefs: new Map(),
+    subcktDefList: [],
     modelDefs: new Map(),
     xInstances: [],
     deviceInstances: [],
@@ -862,7 +1029,7 @@ function offsetRange(ll: LogicalLine, startOff: number, endOff: number): Range |
   const segs: { line: number; colStart: number; textStart: number; textLen: number }[] = [];
   for (let i = 0; i < ll.physicalLines.length; i++) {
     const raw = ll.physicalLines[i];
-    const stripped = stripInlineComment(raw);
+    const stripped = stripSpectreContinuation(stripInlineComment(raw), ll.dialect).text;
     let txt: string;
     if (i === 0) {
       txt = stripped.trim();
@@ -893,15 +1060,17 @@ function offsetRange(ll: LogicalLine, startOff: number, endOff: number): Range |
 }
 
 /**
- * Parse HSPICE source text into a FileModel. Single pass; case-insensitive
+ * Parse HSPICE source text into a FileModel. One semantic pass; case-insensitive
  * (names lowercased for lookup, original case preserved for display).
  */
 export function parseFile(filePath: string, source: string, opts: ParseOptions = {}): FileModel {
   // Device types whose instances are parsed and stored. Includes the modeled
-  // devices (M/Q/D) so MOSFET/BJT/diode model names are navigable — the common
+  // devices (M/Q/D/J/S/Z) so their model names are navigable — the common
   // case where users wrap a primitive in a `.subckt` with parasitics. Pass a
   // smaller set via opts to save memory on very large industrial netlists.
-  const indexedDeviceTypes = opts.indexedDeviceTypes ?? new Set(["m", "q", "d", "v", "i", "e", "g", "f", "h"]);
+  const indexedDeviceTypes = opts.indexedDeviceTypes ?? new Set([
+    "m", "q", "d", "j", "s", "z", "v", "i", "e", "g", "f", "h",
+  ]);
   // X-instances with this many nodes or fewer are skipped. Default 2: drops
   // degenerate ≤2-node lines while keeping the minimum MOSFET-subckt case
   // (3+ nodes — source/drain/gate, optionally bulk), which is the common
@@ -914,9 +1083,25 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
   const minSpectreModelNodes = opts.minSpectreModelNodes ?? 2;
 
   const model = emptyFileModel(filePath);
+  if (opts.indexConnectivity) {
+    model.connectivity = { byLine: new Map(), byScopeAndName: new Map() };
+  }
   const lines = preprocess(source, filePath);
+  // Q's optional fourth substrate node is syntactically ambiguous with a
+  // symbolic area token. Collect local model names once so declarations later
+  // in the file are just as useful as declarations earlier in the file.
+  const localModelNames = new Set<string>();
+  for (const logicalLine of lines) {
+    const match = /^\s*\.?model\s+([^\s(){}]+)/i.exec(logicalLine.text);
+    if (match) localModelNames.add(match[1].toLowerCase());
+  }
+  const physicalSource = opts.indexConnectivity
+    ? source.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n")
+    : undefined;
 
   let openSubckt: SubcktDef | null = null;
+  const topNetScope: NetScope = { id: "top", kind: "top" };
+  let currentNetScope = topNetScope;
   /** Stack of currently-open `.LIB section` definitions (innermost last). */
   const sectionStack: SectionDef[] = [];
   const currentSection = (): string | undefined =>
@@ -967,6 +1152,27 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
         filePath,
         section: currentSection(),
       };
+      currentNetScope = {
+        id: `subckt:${nameTok.text}:${nameTok.line}:${nameTok.character}`,
+        kind: "subckt",
+        subcktName: nameTok.text,
+        originalSubcktName: nameTok.originalText,
+      };
+      for (const port of ports) {
+        pushNetOccurrence(model.connectivity, {
+          name: port.name,
+          originalName: port.originalName,
+          range: port.range,
+          filePath,
+          scope: currentNetScope,
+          endpoint: {
+            kind: "port",
+            subcktName: nameTok.text,
+            originalSubcktName: nameTok.originalText,
+            portIndex: port.index,
+          },
+        });
+      }
       continue;
     }
 
@@ -974,8 +1180,10 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
       if (openSubckt) {
         openSubckt.range.end = llEnd(ll);
         model.subcktDefs.set(openSubckt.name, openSubckt);
+        model.subcktDefList.push(openSubckt);
         openSubckt = null;
       }
+      currentNetScope = topNetScope;
       continue;
     }
 
@@ -1131,16 +1339,20 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
     // HSPICE: first token starts with a device letter (`x`, `m`, `q`, `d`, ...).
     if (!isSpectre && first.type === "identifier" && first.text.startsWith("x")) {
       const inst = parseXInstance(ll, tokens, filePath, model.funcNames);
-      if (inst && inst.nodes.length > minXInstanceNodes) {
-        model.xInstances.push(inst);
+      if (inst) {
+        indexInstanceNodes(model.connectivity, currentNetScope, inst, physicalSource);
+        if (inst.nodes.length > minXInstanceNodes) model.xInstances.push(inst);
       }
       continue;
     }
     if (!isSpectre && first.type === "identifier") {
       const devType = first.text[0];
-      if (DEVICE_TYPES.has(devType) && indexedDeviceTypes.has(devType)) {
-        const inst = parseDeviceInstance(ll, tokens, filePath, model.funcNames);
-        if (inst) model.deviceInstances.push(inst);
+      if (DEVICE_TYPES.has(devType) && (opts.indexConnectivity || indexedDeviceTypes.has(devType))) {
+        const inst = parseDeviceInstance(ll, tokens, filePath, model.funcNames, localModelNames);
+        if (inst) {
+          indexInstanceNodes(model.connectivity, currentNetScope, inst, physicalSource);
+          if (indexedDeviceTypes.has(devType)) model.deviceInstances.push(inst);
+        }
       }
       continue;
     }
@@ -1148,10 +1360,13 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
     // Spectre instance: `name ( nodes... ) target params...`
     if (isSpectre && first.type === "identifier" && !isSpectreKeyword(first.text)) {
       const inst = parseSpectreInstance(ll, tokens, filePath, model.funcNames);
-      if (inst && inst.kind === "xinstance" && inst.nodes.length >= minSpectreModelNodes) {
-        model.xInstances.push(inst);
-      } else if (inst && inst.kind === "device") {
-        model.deviceInstances.push(inst);
+      if (inst) {
+        indexInstanceNodes(model.connectivity, currentNetScope, inst, physicalSource);
+        if (inst.kind === "xinstance" && inst.nodes.length >= minSpectreModelNodes) {
+          model.xInstances.push(inst);
+        } else if (inst.kind === "device") {
+          model.deviceInstances.push(inst);
+        }
       }
     }
   }
@@ -1159,6 +1374,7 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
   // Unterminated `.SUBCKT`: keep it anyway so navigation still works.
   if (openSubckt) {
     model.subcktDefs.set(openSubckt.name, openSubckt);
+    model.subcktDefList.push(openSubckt);
   }
   // Unterminated `.LIB` sections: keep so navigation still works.
   for (const sec of sectionStack) {
@@ -1199,6 +1415,7 @@ export type TokenHit =
   | { kind: "modelRef"; modelName: string }
   | { kind: "nodeInXInstance"; instance: XInstance; nodeIndex: number }
   | { kind: "nodeInDevice"; instance: DeviceInstance; nodeIndex: number }
+  | { kind: "netRef"; occurrence: NetOccurrence }
   | { kind: "includeDirective"; path: string }
   | { kind: "libRefPath"; path: string }
 	  | { kind: "libRefSection"; sectionName: string; originalSectionName?: string }
@@ -1209,7 +1426,7 @@ export type TokenHit =
 /** Determine what is under the cursor in a parsed file. */
 export function tokenAtPosition(model: FileModel, pos: Pos): TokenHit | undefined {
   // 1. Exact symbol-definition name ranges.
-  for (const def of model.subcktDefs.values()) {
+  for (const def of model.subcktDefList) {
     if (containsPosition(def.nameRange, pos)) {
       return { kind: "subcktDef", subcktName: def.name };
     }
@@ -1231,6 +1448,12 @@ export function tokenAtPosition(model: FileModel, pos: Pos): TokenHit | undefine
       return { kind: "sectionDef", sectionName: def.name };
     }
   }
+
+  // Live documents carry a lightweight connectivity index. Prefer its exact
+  // net-token hit before legacy retained-instance lookup so R/C/L and filtered
+  // short X instances participate without changing disk-cache memory policy.
+  const netOccurrence = netOccurrenceAtPosition(model, pos);
+  if (netOccurrence) return { kind: "netRef", occurrence: netOccurrence };
 
   // 2. Instance references.
 	  for (const inst of model.xInstances) {
@@ -1315,4 +1538,15 @@ function identifierAtOffset(expr: string, pos: Pos, valueRange: Range): string |
   if (pos.line !== valueRange.start.line) return undefined;
   const off = pos.character - valueRange.start.character;
   return identifierAtText(expr, off);
+}
+
+/** Find the exact live-document net token under a physical cursor position. */
+export function netOccurrenceAtPosition(model: FileModel, pos: Pos): NetOccurrence | undefined {
+  const onLine = model.connectivity?.byLine.get(pos.line);
+  return onLine?.find((occurrence) => containsPosition(occurrence.range, pos));
+}
+
+/** Return all occurrences of one case-insensitive net inside one lexical scope. */
+export function netOccurrencesInScope(model: FileModel, scopeId: string, netName: string): NetOccurrence[] {
+  return model.connectivity?.byScopeAndName.get(scopeId)?.get(netName.toLowerCase()) ?? [];
 }

@@ -14,8 +14,16 @@ import {
   type SubcktDef,
   type ModelDef,
   type ParamDef,
+  type NetOccurrence,
 } from "./parser";
-import { SymbolIndex, resolveInclude } from "./index";
+import { SymbolIndex, resolveInclude, type ReachableDefinitionIndex } from "./index";
+import {
+  collectOccurrencesInRange,
+  formalPortTargets,
+  formalSubcktCandidates,
+  netReferenceOccurrences,
+  uniqueFormalPortHint,
+} from "./connectivity";
 
 const DEBOUNCE_MS = 300;
 
@@ -27,7 +35,7 @@ const DEVICE_TERMINALS: Record<string, string[]> = {
   c: ["term1", "term2"],
   l: ["term1", "term2"],
   m: ["drain", "gate", "source", "bulk"],
-  q: ["collector", "base", "emitter"],
+  q: ["collector", "base", "emitter", "substrate"],
   d: ["anode", "cathode"],
   v: ["+", "−"],
   i: ["+", "−"],
@@ -36,7 +44,11 @@ const DEVICE_TERMINALS: Record<string, string[]> = {
   f: ["out+", "out−"],
   h: ["out+", "out−"],
   b: ["+", "−"],
+  j: ["drain", "gate", "source"],
+  s: ["out+", "out−", "control+", "control−"],
   t: ["port1+", "port1−", "port2+", "port2−"],
+  w: ["out+", "out−"],
+  z: ["drain", "gate", "source"],
 };
 
 /**
@@ -70,6 +82,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.languages.registerDefinitionProvider(SPICE_SELECTOR, new SpiceDefinitionProvider()),
     vscode.languages.registerHoverProvider(SPICE_SELECTOR, new SpiceHoverProvider()),
     vscode.languages.registerReferenceProvider(SPICE_SELECTOR, new SpiceReferenceProvider()),
+    vscode.languages.registerDocumentHighlightProvider(SPICE_SELECTOR, new SpiceDocumentHighlightProvider()),
+    vscode.languages.registerInlayHintsProvider(SPICE_SELECTOR, new SpiceInlayHintsProvider()),
     vscode.languages.registerDocumentLinkProvider(SPICE_SELECTOR, new SpiceDocumentLinkProvider()),
     diagnosticCollection,
 
@@ -83,6 +97,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidCloseTextDocument((doc) => {
       if (doc.languageId !== "spice" || doc.uri.scheme !== "file") return;
       const filePath = uriToPath(doc.uri);
+      const pending = reindexTimers.get(filePath);
+      if (pending) clearTimeout(pending);
+      reindexTimers.delete(filePath);
       index.invalidateLive(filePath);
       diagnosticCollection.delete(doc.uri);
     }),
@@ -273,7 +290,7 @@ class SpiceDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
       return arr;
     };
 
-    for (const def of model.subcktDefs.values()) bucket(def.section).push(buildSubckt(def));
+    for (const def of model.subcktDefList) bucket(def.section).push(buildSubckt(def));
     for (const def of model.modelDefs.values()) bucket(def.section).push(buildModel(def));
     for (const arr of model.paramDefs.values()) for (const def of arr) bucket(def.section).push(buildParam(def));
 
@@ -361,6 +378,12 @@ class SpiceDefinitionProvider implements vscode.DefinitionProvider {
         const resolved = resolveInclude(hit.path, filePath);
         return new vscode.Location(vscode.Uri.file(resolved), new vscode.Position(0, 0));
       }
+      case "netRef": {
+        const endpoint = hit.occurrence.endpoint;
+        if (endpoint.kind !== "xinstance") return null;
+        const defs = definitionsForEndpoint(hit.occurrence, filePath);
+        return locate(formalPortTargets(hit.occurrence, defs));
+      }
       case "nodeInXInstance": {
         const def = index.findSubckt(hit.instance.subcktName);
         if (!def) return null;
@@ -386,14 +409,76 @@ class SpiceDefinitionProvider implements vscode.DefinitionProvider {
 function scopedDefs<T extends { section?: string; filePath: string; range: Range }>(
   defs: T[],
   filePath: string,
+  scopeCache?: Map<string, { section?: string; determined: boolean }>,
 ): T[] {
   if (defs.length <= 1) return defs;
-  const scope = index.resolveScope(filePath);
-  if (scope.determined && scope.section) {
-    const inScope = defs.filter((d) => (d.section ?? "").toLowerCase() === scope.section);
-    if (inScope.length > 0) return inScope;
+  const byTarget = new Map<string, T[]>();
+  for (const definition of defs) {
+    const group = byTarget.get(definition.filePath);
+    if (group) group.push(definition);
+    else byTarget.set(definition.filePath, [definition]);
   }
-  return defs; // ambiguous → return all, let Peek choose
+  const selected: T[] = [];
+  for (const [targetFilePath, group] of byTarget) {
+    let scope = scopeCache?.get(targetFilePath);
+    if (!scope) {
+      scope = targetFilePath === filePath
+        ? index.resolveScope(filePath)
+        : index.resolveScopeForReference(targetFilePath, filePath);
+      scopeCache?.set(targetFilePath, scope);
+    }
+    if (scope.determined && scope.section) {
+      const inScope = group.filter((definition) =>
+        (definition.section ?? "").toLowerCase() === scope.section);
+      selected.push(...(inScope.length > 0 ? inScope : group));
+    } else {
+      selected.push(...group);
+    }
+  }
+  return selected; // remaining ambiguity → return all, let native Peek choose
+}
+
+function definitionsForEndpoint(
+  occurrence: NetOccurrence,
+  filePath: string,
+  reachable?: ReachableDefinitionIndex,
+  targetCache?: Map<string, SubcktDef[]>,
+  scopeCache?: Map<string, { section?: string; determined: boolean }>,
+): SubcktDef[] {
+  const endpoint = occurrence.endpoint;
+  if (endpoint.kind !== "xinstance") return [];
+  const key = endpoint.targetName.toLowerCase();
+  const cached = targetCache?.get(key);
+  if (cached) return cached;
+  const definitions = reachable ?? index.buildReachableDefinitionIndex(filePath);
+  if (!definitions) return [];
+  const candidates = formalSubcktCandidates(
+    definitions.subckts.get(key) ?? [],
+    definitions.models.get(key) ?? [],
+  );
+  const scoped = scopedDefs(candidates, filePath, scopeCache);
+  targetCache?.set(key, scoped);
+  return scoped;
+}
+
+function deviceTerminalLabel(deviceType: string, nodeIndex: number): string {
+  const terminals = SPECTRE_TERMINALS[deviceType] ?? DEVICE_TERMINALS[deviceType];
+  return terminals?.[nodeIndex] ?? `term${nodeIndex + 1}`;
+}
+
+function netEndpointLabel(occurrence: NetOccurrence, filePath: string): string {
+  const endpoint = occurrence.endpoint;
+  switch (endpoint.kind) {
+    case "port":
+      return `${endpoint.originalSubcktName}.${occurrence.originalName}`;
+    case "xinstance": {
+      const targets = formalPortTargets(occurrence, definitionsForEndpoint(occurrence, filePath));
+      const portName = targets.length === 1 ? targets[0].port.originalName : `port${endpoint.nodeIndex + 1}`;
+      return `${endpoint.originalInstanceName}.${portName}`;
+    }
+    case "device":
+      return `${endpoint.originalInstanceName}.${deviceTerminalLabel(endpoint.deviceType, endpoint.nodeIndex)}`;
+  }
 }
 
 class SpiceHoverProvider implements vscode.HoverProvider {
@@ -422,6 +507,21 @@ class SpiceHoverProvider implements vscode.HoverProvider {
         if (!def) return undefined;
         return mkHover(`**model** \`${def.originalName}\`  —  type: \`${def.modelType}\``, range);
       }
+      case "netRef": {
+        const occurrence = hit.occurrence;
+        const occurrences = index.findNetOccurrences(filePath, occurrence.scope.id, occurrence.name);
+        const scope = occurrence.scope.kind === "top"
+          ? "top level"
+          : `subckt ${occurrence.scope.originalSubcktName ?? occurrence.scope.subcktName ?? ""}`;
+        return mkHover(
+          `**net** \`${occurrence.originalName}\`\n\n` +
+          `Scope: \`${scope}\`  \n` +
+          `Endpoints: **${occurrences.length}**  \n` +
+          `Current: \`${netEndpointLabel(occurrence, filePath)}\`  \n\n` +
+          `Use Shift+F12 to peek this scoped net.`,
+          toRange(doc, occurrence.range),
+        );
+      }
       case "nodeInXInstance": {
         const def = index.findSubckt(hit.instance.subcktName);
         if (!def) return undefined;
@@ -430,8 +530,7 @@ class SpiceHoverProvider implements vscode.HoverProvider {
         return mkHover(`\`${portName}\``, range);
       }
       case "nodeInDevice": {
-        const terminals = SPECTRE_TERMINALS[hit.instance.deviceType] ?? DEVICE_TERMINALS[hit.instance.deviceType];
-        const termLabel = terminals?.[hit.nodeIndex] ?? `term${hit.nodeIndex + 1}`;
+        const termLabel = deviceTerminalLabel(hit.instance.deviceType, hit.nodeIndex);
         return mkHover(`\`${termLabel}\``, range);
       }
       case "paramDef":
@@ -484,13 +583,24 @@ class SpiceHoverProvider implements vscode.HoverProvider {
 }
 
 class SpiceReferenceProvider implements vscode.ReferenceProvider {
-  provideReferences(doc: vscode.TextDocument, pos: vscode.Position): vscode.Location[] {
+  provideReferences(
+    doc: vscode.TextDocument,
+    pos: vscode.Position,
+    context: vscode.ReferenceContext,
+  ): vscode.Location[] {
     const filePath = uriToPath(doc.uri);
     const model = index.getModel(filePath);
     if (!model) return [];
     const hit = tokenAtPosition(model, { line: pos.line, character: pos.character });
     if (!hit) return [];
     switch (hit.kind) {
+      case "netRef":
+        return netReferenceOccurrences(
+          index.findNetOccurrences(filePath, hit.occurrence.scope.id, hit.occurrence.name),
+          context.includeDeclaration,
+        )
+          .map((occurrence) => locationForFile(occurrence.filePath, occurrence.range))
+          .filter((location): location is vscode.Location => !!location);
       case "subcktDef":
       case "subcktRef":
       case "nodeInXInstance": {
@@ -498,7 +608,8 @@ class SpiceReferenceProvider implements vscode.ReferenceProvider {
         const def = index.findSubckt(name);
         const defLoc = def ? locationForFile(def.filePath, def.nameRange) : undefined;
         const instLocs = index.findXInstances(name).map((inst) => locationForFile(inst.filePath, inst.nameRange));
-        return [defLoc, ...instLocs].filter((l): l is vscode.Location => !!l);
+        return [context.includeDeclaration ? defLoc : undefined, ...instLocs]
+          .filter((l): l is vscode.Location => !!l);
       }
       case "modelDef":
       case "modelRef": {
@@ -507,7 +618,8 @@ class SpiceReferenceProvider implements vscode.ReferenceProvider {
         const devLocs = index
           .findDevicesByModel(hit.modelName)
           .map((dev) => locationForFile(dev.filePath, dev.modelNameRange ?? dev.nameRange));
-        return [defLoc, ...devLocs].filter((l): l is vscode.Location => !!l);
+        return [context.includeDeclaration ? defLoc : undefined, ...devLocs]
+          .filter((l): l is vscode.Location => !!l);
       }
       case "paramDef":
       case "paramRef": {
@@ -516,11 +628,72 @@ class SpiceReferenceProvider implements vscode.ReferenceProvider {
         const refLocs = index
           .findParamRefs(name)
           .map((r) => locationForFile(r.filePath, r.range));
-        return [...defLocs, ...refLocs].filter((l): l is vscode.Location => !!l);
+        return [...(context.includeDeclaration ? defLocs : []), ...refLocs]
+          .filter((l): l is vscode.Location => !!l);
       }
       default:
         return [];
     }
+  }
+}
+
+class SpiceDocumentHighlightProvider implements vscode.DocumentHighlightProvider {
+  provideDocumentHighlights(doc: vscode.TextDocument, pos: vscode.Position): vscode.DocumentHighlight[] {
+    const filePath = uriToPath(doc.uri);
+    const occurrence = index.findNetOccurrence(filePath, { line: pos.line, character: pos.character });
+    if (!occurrence) return [];
+    return index
+      .findNetOccurrences(filePath, occurrence.scope.id, occurrence.name)
+      .map((item) => new vscode.DocumentHighlight(toRange(doc, item.range), vscode.DocumentHighlightKind.Text));
+  }
+}
+
+class SpiceInlayHintsProvider implements vscode.InlayHintsProvider {
+  provideInlayHints(
+    doc: vscode.TextDocument,
+    requestedRange: vscode.Range,
+    cancellation: vscode.CancellationToken,
+  ): vscode.InlayHint[] {
+    const filePath = uriToPath(doc.uri);
+    const hints: vscode.InlayHint[] = [];
+    const occurrences = collectOccurrencesInRange(
+      (line) => index.netOccurrencesOnLine(filePath, line),
+      {
+        start: { line: requestedRange.start.line, character: requestedRange.start.character },
+        end: { line: requestedRange.end.line, character: requestedRange.end.character },
+      },
+      () => cancellation.isCancellationRequested,
+    );
+    if (!occurrences) return [];
+
+    const xOccurrences = occurrences.filter((occurrence) => occurrence.endpoint.kind === "xinstance");
+    if (xOccurrences.length === 0 || cancellation.isCancellationRequested) return [];
+    const reachable = index.buildReachableDefinitionIndex(
+      filePath,
+      () => cancellation.isCancellationRequested,
+    );
+    if (!reachable || cancellation.isCancellationRequested) return [];
+    const targetCache = new Map<string, SubcktDef[]>();
+    const scopeCache = new Map<string, { section?: string; determined: boolean }>();
+
+    for (const occurrence of xOccurrences) {
+      if (cancellation.isCancellationRequested) return [];
+      const target = uniqueFormalPortHint(
+        occurrence,
+        definitionsForEndpoint(occurrence, filePath, reachable, targetCache, scopeCache),
+      );
+      if (!target) continue;
+      const location = locationForFile(target.filePath, target.range);
+      if (!location) continue;
+
+      const label = new vscode.InlayHintLabelPart(`${target.port.originalName}:`);
+      label.location = location;
+      label.tooltip = `Go to formal port ${target.port.originalName}`;
+      const hint = new vscode.InlayHint(toPos(doc, occurrence.range.start), [label], vscode.InlayHintKind.Parameter);
+      hint.paddingRight = true;
+      hints.push(hint);
+    }
+    return hints;
   }
 }
 

@@ -14,6 +14,8 @@
 ## See also
 [Seeing SPICE in VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=xuanli.spice)
 
+Requires VS Code 1.67.0 or newer.
+
 ## Docs
 - [CHANGELOG.md](CHANGELOG.md) — release history
 - [docs/SYNTAX.md](docs/SYNTAX.md) — SPICE/HSPICE vs Spectre dialect comparison & navigation matrix
@@ -210,9 +212,45 @@ IDE-style navigation across HSPICE and Spectre netlists, including process libra
 
 > Navigation works in both dialects in any `.sp` / `.scs` / `.lib` file. The examples below use HSPICE dot-command syntax; the Spectre equivalents (bare `subckt`/`model`/`parameters`/`include`/`section`) work the same way.
 
+### Scope-local net connectivity (0.4.0)
+
+Place the cursor on a node name to inspect its electrical endpoints inside the
+current lexical scope: either the current file's top level or one `.SUBCKT` /
+`subckt` body.
+
+- Matching endpoints are highlighted with VS Code's native Document Highlight.
+- `Shift+F12` opens native Peek References for the scoped net. A subcircuit
+  header port counts as the declaration endpoint.
+- Hover shows the original net spelling, lexical scope, endpoint count, and the
+  current mapping such as `X1.A` or `M1.drain`.
+- Unambiguous subcircuit calls show clickable `formalPort:` Inlay Hints. Missing
+  or ambiguous definitions, model targets, and port-count mismatches produce no
+  hint.
+- F12 on an X actual node still jumps to the positional formal port. Primitive
+  device nodes do not gain an invented definition.
+
+Hints use the standard VS Code setting and are on by default. To disable them
+only for SPICE files:
+
+```json
+"[spice]": {
+  "editor.inlayHints.enabled": "off"
+}
+```
+
+Connectivity is deliberately lexical in 0.4.0. Same-name nets in another
+subcircuit or file are not merged; `0`, `.global`, and Spectre `global` names
+remain local to each lexical scope. Workspace-wide and hierarchical
+connectivity are later, demand-gated capabilities.
+
+Net lookup is intentionally case-insensitive in both dialects and preserves the
+spelling at each endpoint. Spectre simulators may distinguish names by case, so
+case-only-distinct Spectre nets are a documented 0.4.0 navigation limit rather
+than a claim about simulator connectivity.
+
 ### Go to Definition (`F12`)
 - From an `X` instance name → its `.SUBCKT` definition.
-- From a `M` / `Q` / `D` device model name → its `.MODEL` definition.
+- From a `M` / `Q` / `D` / `J` / `S` / `Z` device model name → its `.MODEL` definition.
 - From a node on an `X` instance → the matching port in the `.SUBCKT` header.
 - From a **variable reference inside an expression** (e.g. `dL` in `lmin = 'L0-(dL+dmis)'`) → its `.param` definition.
 - From a section name in `.lib 'file' section` → the corresponding `.LIB section … .ENDL` definition.
@@ -223,13 +261,16 @@ When the same name is defined in multiple places (e.g. a model/param defined in 
 ### Hover (`Ctrl+K Ctrl+I`)
 - Over a subcircuit name → its **port list**.
 - Over a model name → its **type** (e.g. `nmos`, `pnp`).
-- Over a node on an `X` instance → the matching **port name**; over a node on a device → the **terminal name** (`drain` / `gate` / `source` / …).
+- Over a net endpoint → its lexical scope, endpoint count, and current X-port or
+  primitive-terminal mapping.
 - Over a `.param` variable → its **value(s)** (all definitions when multiple corners exist).
 - Over an environment variable (`$VAR` / `${VAR}`) inside an `.INCLUDE` path → its resolved value.
 
 ### Find All References (`Shift+F12`)
 - All `X` instances referencing a subcircuit, or all device instances referencing a model.
 - All expression sites referencing a `.param` variable (inside other params and model cards).
+- On a net token, all endpoints with the same case-insensitive name in the
+  current lexical scope.
 
 ### Outline
 The Outline panel lists every `.SUBCKT`, `.MODEL`, and `.param`, **nested under their containing `.LIB section`**, with click-to-navigate.
@@ -252,7 +293,8 @@ Warnings (yellow squiggle) for:
 
 ### Design notes & limitations
 - Case-insensitive symbol lookup (HSPICE semantics); original case is preserved for display.
-- HSPICE `+` line continuation and `$` / `;` inline comments are handled during parsing.
+- HSPICE `+`, Spectre end-of-line `\\`, and Spectre `{ ... }` continuations
+  preserve physical token ranges during parsing.
 - `.param` variable references inside expressions are extracted by scanning identifiers and excluding function calls (`name(`), user `.func` names, scientific-notation exponent markers, and HSPICE built-in functions (`max`, `pwr`, `agauss`, `v`, `i`, …). This covers `.param` values, model-card `key='expr'` values, and X/device/Spectre instance parameter expressions. It is best-effort and may produce false positives/negatives; it affects only reference completeness, never jump correctness.
 - Nested `.SUBCKT` definitions are not supported (not valid HSPICE syntax).
 - The navigation engine is derived from [HSPICE IntelliSense](https://marketplace.visualstudio.com/items?itemName=vladimir-aptekar.hspice-intellisense) (MIT) and substantially extended; see `LICENSE` (Third-Party Notice) and `src/` file headers.
@@ -261,7 +303,9 @@ Warnings (yellow squiggle) for:
 `.ckt`, `.sp`, `.net`, `.cir`, `.scs`, `.mod`, `.mdl`, `.lib`, `.sub`, `.l` (HSPICE process library), `.lis` (SPICE output listing), `.dspf` (DSPF parasitic netlist)
 
 ## Roadmap
-- [ ] Refine DSPF parasitic R/C grouping highlight
+- [x] 0.4.0 scope-local net Highlight / Peek / Hover / clickable Inlay Hints
+- [ ] 0.5.0 workspace-scale symbol navigation, cancellable scanning, dialect/file configuration, and stronger cache invalidation
+- [ ] 0.6.0 root-netlist-aware global and one-level connectivity, only after repeated demand and an unambiguous root context
 - [ ] More snippet coverage
 - [x] `.param` variable references from inside X-instance / device / Spectre instance parameter expressions
 - [x] Spectre (`.scs`) navigation — added in 0.3.5 (Go-to-Definition / Hover / References / Outline / `include` links / `section` scope)
@@ -277,6 +321,11 @@ Warnings (yellow squiggle) for:
 ## Change Log
 See [CHANGELOG.md](CHANGELOG.md) for the full history. Recent highlights:
 
+- **[0.4.0]** Add scope-local net connectivity through native Highlight,
+  References, Hover, F12, and clickable Inlay Hints; add Spectre `\\`
+  continuation and privacy-safe release gates.
+- **[0.3.9]** Pin the reproducible toolchain, add CI/package gates, and fix
+  multi-line parameter ranges plus two-node Spectre model navigation.
 - **[0.3.8]** Add exact `.param` references inside model-card and instance/device parameter expressions.
 - **[0.3.7]** Fix expression identifier boundaries so F12 fallback resolves operator-adjacent params like `a-noiseflagn` / `(-noiseflagn)` to `noiseflagn`.
 - **[0.3.6]** Fix expression reference extraction for scientific notation and user `.func` names.
