@@ -31,12 +31,13 @@
         "test:parser": "node test/parser_spectre.test.js",
         "test:connectivity": "node test/connectivity.test.js",
         "test:public-boundary": "bash test/public_boundary.test.sh",
-        "check": "npm run compile && npm run test:parser && npm run test:connectivity && npm run test:public-boundary",
+        "check": "npm run compile && npm run test:parser && npm run test:aucdl && npm run test:connectivity && npm run test:public-boundary",
         "package:contents": "vsce ls",
         "package:verify": "bash scripts/check-vsix-contents.sh",
         "package:vsix": "npm run check && vsce package --no-dependencies --allow-missing-repository && npm run package:verify",
         "watch": "tsc -watch -p ./",
-        "vscode:prepublish": "npm run compile"
+        "vscode:prepublish": "npm run compile",
+        "test:aucdl": "node test/parser_aucdl.test.js"
     },
     "devDependencies": {
         "@types/node": "^18.0.0",
@@ -60,6 +61,7 @@
     ],
     "keywords": [
         "spice",
+        "aucdl",
         "hspice",
         "spectre",
         "syntax",
@@ -83,6 +85,8 @@
                     ".sp",
                     ".net",
                     ".cir",
+                    ".cdl",
+                    ".aucdl",
                     ".scs",
                     ".mod",
                     ".mdl",

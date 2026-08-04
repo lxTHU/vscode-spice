@@ -8,6 +8,8 @@
 		<string>sp</string>
 		<string>net</string>
 		<string>cir</string>
+		<string>cdl</string>
+		<string>aucdl</string>
 		<string>mod</string>
 		<string>mdl</string>
 		<string>lib</string>
@@ -44,6 +46,38 @@
 			<string>$</string>
 			<key>name</key>
 			<string>comment.line.semicolon.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>AUCDL model annotation such as $[nch]</string>
+			<key>match</key>
+			<string>\$\[[^\]]+\]</string>
+			<key>name</key>
+			<string>entity.name.type.model.aucdl.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>AUCDL instance property such as $W= or $L=</string>
+			<key>match</key>
+			<string>\$[A-Za-z_]\w*(?=\s*=)</string>
+			<key>name</key>
+			<string>variable.parameter.aucdl.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>AUCDL X-instance hierarchy separator</string>
+			<key>match</key>
+			<string>(?i)(?&lt;=\s)/(?=\s*[A-Za-z_])</string>
+			<key>name</key>
+			<string>punctuation.separator.hierarchy.aucdl.spice</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>AUCDL metadata directives</string>
+			<key>match</key>
+			<string>(?i)^\s*\.(?:pininfo|global)\b</string>
+			<key>name</key>
+			<string>keyword.control.aucdl.spice</string>
 		</dict>
 		<dict>
 			<key>comment</key>

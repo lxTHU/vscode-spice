@@ -7,6 +7,8 @@
 // Spectre adds: `//` comments, `{ }` block joining, parenthesised instance/subckt
 // node lists, and bare (dot-less) keywords (subckt/model/parameters/section/...).
 
+import { normalizeAucdlSource } from "./aucdl";
+
 /** 0-based position aligned with VS Code's `line`/`character`. */
 export interface Pos {
   line: number;
@@ -1086,7 +1088,8 @@ export function parseFile(filePath: string, source: string, opts: ParseOptions =
   if (opts.indexConnectivity) {
     model.connectivity = { byLine: new Map(), byScopeAndName: new Map() };
   }
-  const lines = preprocess(source, filePath);
+  const parserSource = normalizeAucdlSource(source, filePath);
+  const lines = preprocess(parserSource, filePath);
   // Q's optional fourth substrate node is syntactically ambiguous with a
   // symbolic area token. Collect local model names once so declarations later
   // in the file are just as useful as declarations earlier in the file.

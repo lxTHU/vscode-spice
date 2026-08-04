@@ -1,5 +1,34 @@
 # SPICE/HSPICE vs Spectre — Syntax Reference
 
+## Cadence auCdl / CDL
+
+Files ending in `.cdl` or `.aucdl` use the ordinary SPICE language mode plus
+compatibility handling for Cadence auCdl output.
+
+```spice
+.GLOBAL VDD VSS
+.SUBCKT INV A Y VDD VSS
+.PININFO A:I Y:O VDD:B VSS:B
+
+MM0 Y A VSS VSS $[nch_svt] $W=1u $L=180n $M=2
+MM1 Y A VDD VDD $[pch_svt] $W=2u $L=180n
+
+XI0 A Y VDD VSS / INV
+.ENDS INV
+```
+
+The extension recognises:
+
+- `/` as the separator between X-instance nodes and the subcircuit name;
+- `$[model]` as a primitive-device model reference;
+- `$W=`, `$L=`, `$M=` and other `$name=value` instance properties;
+- `.PININFO` and `.GLOBAL` directives for syntax highlighting;
+- `.cdl` and `.aucdl` filename associations.
+
+The compatibility pass preserves character positions, so definition, reference,
+hover, connectivity and inlay-hint ranges remain aligned with the source file.
+
+
 This document compares the two netlist dialect families this extension supports,
 and notes how the navigation engine treats each. It is a quick reference for
 reading and writing netlists, not a simulator manual.
